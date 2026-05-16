@@ -47,7 +47,7 @@ export default function Navbar() {
             {/* Logo */}
             <Link to="/" className="flex items-center group">
               <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-full overflow-hidden flex items-center justify-center shadow-glow-sm group-hover:shadow-glow transition-shadow duration-300">
-                <img src="/logo.jpg" alt="Rust Revive Logo" className="w-full h-full object-cover" />
+                <img src="/logo.webp" alt="Rust Revive Logo" className="w-full h-full object-cover" />
               </div>
             </Link>
 

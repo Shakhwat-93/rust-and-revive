@@ -35,7 +35,7 @@ function Hero() {
       {/* BG Image with parallax */}
       <motion.div style={{ y }} className="absolute inset-0 z-0">
         <img
-          src="/images/hero-banner.png"
+          src="/images/hero-banner.webp"
           alt="Rust Revive Hero"
           className="w-full h-full object-cover"
         />
@@ -295,7 +295,7 @@ function BrandStory() {
           <Reveal className="relative">
             <div className="relative rounded-2xl overflow-hidden aspect-square lg:aspect-[4/5]">
               <img
-                src="/images/hoodie-rust.png"
+                src="/images/hoodie-rust.webp"
                 alt="Rust Revive Brand Story"
                 className="w-full h-full object-cover"
               />

@@ -47,7 +47,7 @@ export default function Footer() {
           <div className="lg:w-80 flex-shrink-0">
             <Link to="/" className="inline-block mb-4">
               <div className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center shadow-glow-sm">
-                <img src="/logo.jpg" alt="Rust Revive Logo" className="w-full h-full object-cover" />
+                <img src="/logo.webp" alt="Rust Revive Logo" className="w-full h-full object-cover" />
               </div>
             </Link>
             <p className="text-surface-secondary text-small leading-relaxed mb-6">
