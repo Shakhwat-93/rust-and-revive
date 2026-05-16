@@ -46,8 +46,8 @@ export default function Navbar() {
 
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center shadow-glow-sm group-hover:shadow-glow transition-shadow duration-300">
-                <Zap size={16} className="text-white fill-white" />
+              <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shadow-glow-sm group-hover:shadow-glow transition-shadow duration-300">
+                <img src="/logo.jpg" alt="Rust Revive Logo" className="w-full h-full object-cover" />
               </div>
               <span className="font-black text-lg tracking-tight">
                 RUST<span className="text-brand">.</span>REVIVE

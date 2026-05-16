@@ -24,8 +24,8 @@ export default function AdminSidebar() {
       {/* Logo */}
       <div className="px-6 py-6 border-b border-base-300">
         <Link to="/admin" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center shadow-glow-sm">
-            <Zap size={16} className="text-white fill-white" />
+          <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shadow-glow-sm">
+            <img src="/logo.jpg" alt="Rust Revive Logo" className="w-full h-full object-cover" />
           </div>
           <div>
             <p className="font-black text-sm tracking-tight">RUST<span className="text-brand">.</span>REVIVE</p>
