@@ -1,12 +1,28 @@
-// src/pages/Home.jsx
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { ArrowRight, ChevronRight, Play, Zap, Star, TrendingUp } from 'lucide-react';
-import { products, collections } from '../data/products';
+import { ArrowRight, ChevronRight, Play, Zap, Star, TrendingUp, Loader2 } from 'lucide-react';
+import { getProducts, getSiteSettings } from '../lib/api';
+import { collections } from '../data/products';
 import ProductCard from '../components/shop/ProductCard';
 
-const formatPrice = (p) => `৳${p.toLocaleString('en-BD')}`;
+const formatPrice = (p) => `৳${Number(p).toLocaleString('en-BD')}`;
+
+const defaultHome = {
+  heroHeading: "WEAR THE STREETS.\nOWN THE MOMENT.",
+  heroSubtext: "Premium streetwear for Bangladesh's next generation. Built to last. Priced for the culture.",
+  heroButtonText: "Shop Now",
+  heroBadge: "New Season Drop",
+  heroSubBadge: "SS 2026",
+  brandStoryTitle: "Born From the Streets.\nBuilt for the Future.",
+  brandStoryText1: "Rust Revive was born in Dhaka out of frustration — the frustration of paying premium prices for average quality, or settling for cheap products that fall apart after one wash.",
+  brandStoryText2: "We set out to prove that you don't have to choose. Premium materials, real craftsmanship, and designs that actually hit — all at prices that respect the hustle.",
+  brandStoryStats: [
+    { val: "400 GSM", label: "Premium Fleece" },
+    { val: "100%", label: "Local Crafted" },
+    { val: "0", label: "Compromise" }
+  ]
+};
 
 /* ─── Scroll Reveal Wrapper ─────────────────────────────────────────── */
 function Reveal({ children, delay = 0, className = '' }) {
@@ -24,7 +40,7 @@ function Reveal({ children, delay = 0, className = '' }) {
 }
 
 /* ─── Hero ───────────────────────────────────────────────────────────── */
-function Hero() {
+function Hero({ settings }) {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
   const y = useTransform(scrollYProgress, [0, 1], ['0%', '30%']);
@@ -49,8 +65,8 @@ function Hero() {
       <div className="absolute inset-0 bg-noise z-0 pointer-events-none opacity-40" />
 
       {/* Content */}
-      <motion.div style={{ opacity }} className="container-site relative z-10 pt-24">
-        <div className="max-w-4xl">
+      <motion.div style={{ opacity }} className="container-site relative z-10 py-24 lg:py-32">
+        <div className="max-w-6xl">
           {/* Label */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -60,11 +76,13 @@ function Hero() {
           >
             <div className="flex items-center gap-2 glass-brand px-4 py-2 rounded-full">
               <Zap size={12} className="text-brand fill-brand" />
-              <span className="text-xs font-semibold tracking-widest uppercase text-brand">New Season Drop</span>
+              <span className="text-xs font-semibold tracking-widest uppercase text-brand">
+                {settings.heroBadge || defaultHome.heroBadge}
+              </span>
             </div>
             <div className="flex items-center gap-1 text-surface-muted text-xs">
               <TrendingUp size={12} />
-              <span>SS 2026</span>
+              <span>{settings.heroSubBadge || defaultHome.heroSubBadge}</span>
             </div>
           </motion.div>
 
@@ -73,15 +91,21 @@ function Hero() {
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-            className="font-black text-[clamp(3rem,8vw,6.5rem)] leading-[1] tracking-tight text-glow mb-6"
+            className="font-black text-[clamp(2.75rem,7vw,6rem)] leading-[1.05] tracking-tight text-glow mb-6"
           >
-            WEAR THE
-            <br />
-            <span className="text-brand">STREETS.</span>
-            <br />
-            OWN THE
-            <br />
-            MOMENT.
+            {(settings.heroHeading || defaultHome.heroHeading).split('\n').map((line, idx) => (
+              <span key={idx} className={line.includes('STREETS.') || idx === 0 ? 'text-white' : 'text-white'}>
+                {idx > 0 && <br className="hidden sm:block" />}
+                {line.includes('STREETS.') ? (
+                  <>
+                    {line.replace('STREETS.', '')}
+                    <span className="text-brand">STREETS.</span>
+                  </>
+                ) : (
+                  line
+                )}
+              </span>
+            ))}
           </motion.h1>
 
           {/* Sub */}
@@ -89,10 +113,9 @@ function Hero() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.55 }}
-            className="text-body-lg text-surface-secondary max-w-lg mb-10 leading-relaxed"
+            className="text-body-lg sm:text-xl text-surface-secondary max-w-2xl mb-10 leading-relaxed whitespace-pre-line"
           >
-            Premium streetwear for Bangladesh's next generation.
-            Built to last. Priced for the culture.
+            {settings.heroSubtext || defaultHome.heroSubtext}
           </motion.p>
 
           {/* CTAs */}
@@ -102,55 +125,12 @@ function Hero() {
             transition={{ duration: 0.6, delay: 0.7 }}
             className="flex flex-wrap items-center gap-4"
           >
-            <Link to="/shop" className="btn-primary group">
-              Shop Now
-              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            <Link to="/shop" className="btn-primary group px-8 py-4 text-base font-bold">
+              {settings.heroButtonText || defaultHome.heroButtonText}
+              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </Link>
-            <button className="btn-ghost flex items-center gap-2 group">
-              <div className="w-8 h-8 rounded-full glass border border-white/10 flex items-center justify-center group-hover:border-brand/40 transition-colors">
-                <Play size={10} className="text-surface-primary fill-surface-primary ml-0.5" />
-              </div>
-              Watch the drop
-            </button>
-          </motion.div>
-
-          {/* Stats */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.9 }}
-            className="flex items-center gap-8 mt-16"
-          >
-            {[
-              { val: '5K+', label: 'Happy Customers' },
-              { val: '4.9', label: 'Avg Rating', icon: Star },
-              { val: '48h', label: 'Dhaka Delivery' },
-            ].map(({ val, label, icon: Icon }) => (
-              <div key={label} className="text-center sm:text-left">
-                <div className="flex items-center gap-1">
-                  <span className="font-black text-h3 text-surface-primary">{val}</span>
-                  {Icon && <Icon size={14} className="text-brand fill-brand" />}
-                </div>
-                <p className="text-xs text-surface-muted">{label}</p>
-              </div>
-            ))}
           </motion.div>
         </div>
-      </motion.div>
-
-      {/* Scroll indicator */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2"
-      >
-        <span className="text-[10px] tracking-widest uppercase text-surface-muted">Scroll</span>
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
-          className="w-px h-8 bg-gradient-to-b from-brand to-transparent"
-        />
       </motion.div>
     </section>
   );
@@ -206,9 +186,11 @@ function Collections() {
   );
 }
 
-/* ─── Latest Drop (Horizontal Scroll) ───────────────────────────────── */
-function LatestDrop() {
-  const newProducts = products.filter(p => p.new || p.badge === 'NEW DROP' || p.badge === 'LIMITED');
+/* ─── Latest Drop ───────────────────────────────────────────────────── */
+function LatestDrop({ products }) {
+  const newProducts = products.filter((p) => p.is_new || p.badge === 'NEW DROP' || p.badge === 'LIMITED').slice(0, 6);
+
+  if (newProducts.length === 0) return null;
 
   return (
     <section className="py-12 lg:py-16 overflow-hidden">
@@ -225,16 +207,14 @@ function LatestDrop() {
         </Reveal>
       </div>
 
-      {/* Horizontal scroll */}
       <div className="pl-4 sm:pl-6 lg:pl-8 max-w-7xl mx-auto">
-        <div className="scroll-snap-x gap-5 pb-4">
+        <div className="scroll-snap-x gap-5 pb-4 overflow-x-auto hide-scrollbar">
           {newProducts.map((product, i) => (
-            <div key={product.id} className="scroll-snap-item w-[260px] sm:w-[300px]">
+            <div key={product.id} className="scroll-snap-item w-[260px] sm:w-[300px] flex-shrink-0">
               <ProductCard product={product} index={i} />
             </div>
           ))}
-          {/* View all card */}
-          <div className="scroll-snap-item w-[200px] sm:w-[220px] flex items-center">
+          <div className="scroll-snap-item w-[200px] sm:w-[220px] flex items-center flex-shrink-0">
             <Link
               to="/shop"
               className="w-full aspect-[3/4] rounded-xl glass-brand flex flex-col items-center justify-center gap-3 group hover:bg-brand/10 transition-colors duration-300"
@@ -252,7 +232,7 @@ function LatestDrop() {
 }
 
 /* ─── Product Grid ───────────────────────────────────────────────────── */
-function ProductGrid() {
+function ProductGrid({ products }) {
   const featured = products.slice(0, 4);
 
   return (
@@ -284,7 +264,9 @@ function ProductGrid() {
 }
 
 /* ─── Brand Story ────────────────────────────────────────────────────── */
-function BrandStory() {
+function BrandStory({ settings }) {
+  const stats = settings.brandStoryStats || defaultHome.brandStoryStats;
+
   return (
     <section className="py-24 lg:py-32 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-brand/3 to-transparent pointer-events-none" />
@@ -321,28 +303,22 @@ function BrandStory() {
           <div>
             <Reveal>
               <p className="section-label mb-4">Our Story</p>
-              <h2 className="font-black text-h1 mb-6 leading-tight">
-                Born From the
-                <span className="text-brand"> Streets.</span>
-                <br />Built for the Future.
+              <h2 className="font-black text-h1 mb-6 leading-tight whitespace-pre-line">
+                {settings.brandStoryTitle || defaultHome.brandStoryTitle}
               </h2>
             </Reveal>
             <Reveal delay={0.1}>
-              <p className="text-surface-secondary leading-relaxed mb-6">
-                Rust Revive was born in Dhaka out of frustration — the frustration of paying premium prices for average quality, or settling for cheap products that fall apart after one wash.
+              <p className="text-surface-secondary leading-relaxed mb-6 whitespace-pre-line">
+                {settings.brandStoryText1 || defaultHome.brandStoryText1}
               </p>
-              <p className="text-surface-secondary leading-relaxed mb-8">
-                We set out to prove that you don't have to choose. Premium materials, real craftsmanship, and designs that actually hit — all at prices that respect the hustle.
+              <p className="text-surface-secondary leading-relaxed mb-8 whitespace-pre-line">
+                {settings.brandStoryText2 || defaultHome.brandStoryText2}
               </p>
             </Reveal>
 
             <Reveal delay={0.2} className="grid grid-cols-3 gap-4 mb-8">
-              {[
-                { val: '400 GSM', label: 'Premium Fleece' },
-                { val: '100%', label: 'Local Crafted' },
-                { val: '0', label: 'Compromise' },
-              ].map(({ val, label }) => (
-                <div key={label} className="text-center p-4 rounded-xl glass">
+              {stats.map(({ val, label }, i) => (
+                <div key={i} className="text-center p-4 rounded-xl glass">
                   <p className="font-black text-h4 text-brand">{val}</p>
                   <p className="text-xs text-surface-muted mt-1">{label}</p>
                 </div>
@@ -359,28 +335,6 @@ function BrandStory() {
         </div>
       </div>
     </section>
-  );
-}
-
-/* ─── Marquee Banner ─────────────────────────────────────────────────── */
-function MarqueeBanner() {
-  const items = ['RUST REVIVE', 'NEW DROP', 'STREETWEAR', 'DHAKA', 'SS 2026', 'PREMIUM QUALITY'];
-
-  return (
-    <div className="py-5 border-y border-base-300 overflow-hidden">
-      <motion.div
-        animate={{ x: '-50%' }}
-        transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-        className="flex whitespace-nowrap"
-      >
-        {[...items, ...items, ...items, ...items].map((item, i) => (
-          <span key={i} className="inline-flex items-center gap-4 px-4 text-xs font-bold tracking-widest uppercase text-surface-muted">
-            {item}
-            <span className="text-brand">✦</span>
-          </span>
-        ))}
-      </motion.div>
-    </div>
   );
 }
 
@@ -433,14 +387,42 @@ function Testimonials() {
 
 /* ─── Home Page ──────────────────────────────────────────────────────── */
 export default function Home() {
+  const [products, setProducts] = useState([]);
+  const [settings, setSettings] = useState(defaultHome);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      try {
+        const [prodData, siteData] = await Promise.all([
+          getProducts(),
+          getSiteSettings('home_page'),
+        ]);
+        setProducts(prodData);
+        if (siteData) {
+          setSettings({ ...defaultHome, ...siteData });
+        }
+      } catch (err) {
+        console.error('Error fetching home data:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
   return (
     <main>
-      <Hero />
-      <MarqueeBanner />
+      <Hero settings={settings} />
       <Collections />
-      <LatestDrop />
-      <ProductGrid />
-      <BrandStory />
+      {!loading && products.length > 0 && (
+        <>
+          <LatestDrop products={products} />
+          <ProductGrid products={products} />
+        </>
+      )}
+      <BrandStory settings={settings} />
       <Testimonials />
     </main>
   );

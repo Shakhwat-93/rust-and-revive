@@ -1,4 +1,3 @@
-// src/components/admin/AdminTopbar.jsx
 import { motion } from 'framer-motion';
 import { Bell, Search, Zap, Menu } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
@@ -6,8 +5,10 @@ import { useLocation } from 'react-router-dom';
 const pageTitles = {
   '/admin': 'Dashboard',
   '/admin/products': 'Products',
+  '/admin/categories': 'Categories',
   '/admin/orders': 'Orders',
   '/admin/customers': 'Customers',
+  '/admin/website/pages': 'Website Pages',
 };
 
 export default function AdminTopbar({ onMenuClick }) {

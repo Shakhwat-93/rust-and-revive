@@ -1,4 +1,3 @@
-// src/App.jsx
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -6,13 +5,17 @@ import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import AdminSidebar from './components/admin/AdminSidebar';
 import AdminTopbar from './components/admin/AdminTopbar';
+import ProtectedRoute from './components/admin/ProtectedRoute';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
 import ProductDetail from './pages/ProductDetail';
 import Dashboard from './pages/admin/Dashboard';
 import AdminProducts from './pages/admin/Products';
+import AdminCategories from './pages/admin/Categories';
 import AdminOrders from './pages/admin/Orders';
 import AdminCustomers from './pages/admin/Customers';
+import WebsitePages from './pages/admin/WebsitePages';
+import AdminLogin from './pages/admin/Login';
 
 /* Frontend layout */
 function FrontendLayout() {
@@ -64,8 +67,10 @@ function AdminLayout() {
               <Routes location={location} key={location.pathname}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/products" element={<AdminProducts />} />
+                <Route path="/categories" element={<AdminCategories />} />
                 <Route path="/orders" element={<AdminOrders />} />
                 <Route path="/customers" element={<AdminCustomers />} />
+                <Route path="/website/pages" element={<WebsitePages />} />
               </Routes>
             </motion.div>
           </AnimatePresence>
@@ -79,8 +84,17 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Admin routes */}
-        <Route path="/admin/*" element={<AdminLayout />} />
+        {/* Admin Login Route (Unprotected, standalone layout) */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        {/* Admin protected routes */}
+        <Route
+          path="/admin/*"
+          element={
+            <ProtectedRoute>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        />
         {/* Frontend routes */}
         <Route path="/*" element={<FrontendLayout />} />
       </Routes>

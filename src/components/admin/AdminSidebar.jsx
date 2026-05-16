@@ -1,19 +1,28 @@
-// src/components/admin/AdminSidebar.jsx
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard, Package, ShoppingCart, Users,
-  Zap, Settings, LogOut, ArrowLeft, TrendingUp,
+  FolderKanban, Settings, LogOut, ArrowLeft, Globe,
 } from 'lucide-react';
+import useAuthStore from '../../store/authStore';
 
 const navItems = [
   { to: '/admin', end: true, icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/admin/products', icon: Package, label: 'Products' },
+  { to: '/admin/categories', icon: FolderKanban, label: 'Categories' },
   { to: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
   { to: '/admin/customers', icon: Users, label: 'Customers' },
 ];
 
 export default function AdminSidebar() {
+  const { logout, user } = useAuthStore();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/admin/login');
+  };
+
   return (
     <motion.aside
       initial={{ x: -280, opacity: 0 }}
@@ -29,6 +38,9 @@ export default function AdminSidebar() {
           </div>
           <div>
             <p className="text-[10px] text-surface-muted tracking-widest uppercase">Admin Panel</p>
+            {user?.email && (
+              <p className="text-xs text-brand font-medium truncate max-w-[130px]">{user.email}</p>
+            )}
           </div>
         </Link>
       </div>
@@ -60,6 +72,27 @@ export default function AdminSidebar() {
 
         <div className="divider my-4" />
 
+        <p className="px-3 text-[10px] font-bold uppercase tracking-widest text-surface-muted mb-3">Website Management</p>
+        <NavLink
+          to="/admin/website/pages"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-small font-medium transition-all duration-200 ${
+              isActive
+                ? 'text-brand bg-brand/10 shadow-[inset_0_0_0_1px_rgba(255,107,0,0.15)]'
+                : 'text-surface-secondary hover:text-surface-primary hover:bg-base-500'
+            }`
+          }
+        >
+          {({ isActive }) => (
+            <>
+              <Globe size={16} className={isActive ? 'text-brand' : ''} />
+              Pages (Home, Shop)
+            </>
+          )}
+        </NavLink>
+
+        <div className="divider my-4" />
+
         <p className="px-3 text-[10px] font-bold uppercase tracking-widest text-surface-muted mb-3">More</p>
         <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-small font-medium text-surface-secondary hover:text-surface-primary hover:bg-base-500 transition-all duration-200">
           <Settings size={16} />
@@ -69,6 +102,13 @@ export default function AdminSidebar() {
 
       {/* Footer */}
       <div className="px-3 py-4 border-t border-base-300 space-y-2">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-small font-medium text-red-400 hover:bg-red-500/10 hover:border-red-500/20 transition-all duration-200"
+        >
+          <LogOut size={16} />
+          Logout Admin
+        </button>
         <Link
           to="/"
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-small font-medium text-surface-muted hover:text-surface-primary hover:bg-base-500 transition-all duration-200"

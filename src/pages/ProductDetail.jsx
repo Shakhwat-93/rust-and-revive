@@ -1,21 +1,24 @@
-// src/pages/ProductDetail.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ShoppingBag, Heart, Star, Check, ChevronDown,
-  Shield, Truck, RotateCcw, Zap, ArrowRight,
+  Shield, Truck, RotateCcw, Zap, ArrowRight, X, Ruler, Loader2,
 } from 'lucide-react';
-import { products, reviews } from '../data/products';
+import { getProductBySlug, getProducts } from '../lib/api';
+import { reviews } from '../data/products'; // Keep static reviews or fallback
 import ProductCard from '../components/shop/ProductCard';
 import useCartStore from '../store/cartStore';
 
-const formatPrice = (p) => `৳${p.toLocaleString('en-BD')}`;
+const formatPrice = (p) => `৳${Number(p).toLocaleString('en-BD')}`;
 
 export default function ProductDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const product = products.find(p => p.slug === slug);
+
+  const [product, setProduct] = useState(null);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [activeImg, setActiveImg] = useState(0);
   const [selectedSize, setSelectedSize] = useState(null);
@@ -24,43 +27,84 @@ export default function ProductDetail() {
   const [liked, setLiked] = useState(false);
   const [descOpen, setDescOpen] = useState(true);
   const [featOpen, setFeatOpen] = useState(false);
+  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [sizeError, setSizeError] = useState(false);
   const { addItem, openCart } = useCartStore();
 
+  useEffect(() => {
+    async function loadProduct() {
+      setLoading(true);
+      try {
+        const prod = await getProductBySlug(slug);
+        setProduct(prod);
+        setSelectedSize(prod?.sizes?.[0] || null);
+
+        if (prod?.category) {
+          const rel = await getProducts({ category: prod.category });
+          setRelatedProducts(rel.filter((p) => p.id !== prod.id).slice(0, 4));
+        }
+      } catch (err) {
+        console.error('Error fetching product detail:', err);
+        setProduct(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadProduct();
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen pt-20 flex flex-col items-center justify-center gap-4">
+        <Loader2 size={36} className="text-brand animate-spin" />
+        <p className="text-surface-muted text-small font-mono tracking-widest uppercase">Loading Product Details...</p>
+      </div>
+    );
+  }
+
   if (!product) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen pt-20 flex flex-col items-center justify-center gap-4">
         <h1 className="text-h3 font-bold">Product Not Found</h1>
         <Link to="/shop" className="btn-primary">Back to Shop</Link>
       </div>
     );
   }
 
-  const productReviews = reviews.filter(r => r.productId === product.id);
-  const relatedProducts = products.filter(p => p.category === product.category && p.id !== product.id).slice(0, 4);
-  const discount = product.originalPrice
-    ? Math.round((1 - product.price / product.originalPrice) * 100)
+  const originalPrice = product.original_price || product.originalPrice;
+  const reviewsCount = product.reviews_count || product.reviews || 0;
+  const rating = product.rating || 5.0;
+  const longDesc = product.long_description || product.longDescription || product.description;
+  const featuresList = Array.isArray(product.features) ? product.features : ['100% Premium Material', 'Custom Oversized Fit', 'Garment Washed'];
+
+  const productReviews = reviews.filter((r) => r.productId === product.id || r.productId === product.slug);
+  const discount = originalPrice
+    ? Math.round((1 - product.price / originalPrice) * 100)
     : null;
 
   const handleAddToCart = () => {
-    if (!selectedSize) {
+    if (product.in_stock === false) return;
+    if (!selectedSize && product.sizes?.length > 0) {
       setSizeError(true);
       setTimeout(() => setSizeError(false), 2000);
       return;
     }
     setAdding(true);
-    addItem(product, selectedSize, 1);
+    addItem(product, selectedSize || 'One Size', 1);
     setTimeout(() => {
       setAdding(false);
       setAdded(true);
-      setTimeout(() => { setAdded(false); openCart(); }, 800);
+      setTimeout(() => {
+        setAdded(false);
+        openCart();
+      }, 800);
     }, 500);
   };
 
-  const images = product.images?.length > 0 ? product.images : [product.image];
+  const images = Array.isArray(product.images) && product.images.length > 0 ? product.images : [product.image];
 
   return (
-    <div className="min-h-screen pt-20">
+    <div className="min-h-screen pt-20 pb-20">
       {/* Breadcrumb */}
       <div className="container-site py-4">
         <nav className="flex items-center gap-2 text-xs text-surface-muted">
@@ -82,7 +126,7 @@ export default function ProductDetail() {
           <div className="space-y-4">
             {/* Main Image */}
             <motion.div
-              className="relative overflow-hidden rounded-2xl bg-base-600 aspect-square"
+              className="relative overflow-hidden rounded-2xl bg-base-600 aspect-square border border-base-300"
               layoutId={`product-img-${product.id}`}
             >
               <AnimatePresence mode="wait">
@@ -115,6 +159,11 @@ export default function ProductDetail() {
                     -{discount}%
                   </span>
                 )}
+                {product.in_stock === false && (
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-500 text-white animate-pulse">
+                    STOCK OUT
+                  </span>
+                )}
               </div>
 
               {/* Wishlist */}
@@ -131,12 +180,12 @@ export default function ProductDetail() {
 
             {/* Thumbnails */}
             {images.length > 1 && (
-              <div className="flex gap-3">
+              <div className="flex gap-3 overflow-x-auto pb-2">
                 {images.map((img, i) => (
                   <button
                     key={i}
                     onClick={() => setActiveImg(i)}
-                    className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                    className={`w-20 h-20 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all duration-200 ${
                       activeImg === i ? 'border-brand shadow-glow-sm' : 'border-transparent opacity-60 hover:opacity-100'
                     }`}
                   >
@@ -180,12 +229,16 @@ export default function ProductDetail() {
                     <Star
                       key={i}
                       size={14}
-                      className={i < Math.floor(product.rating) ? 'fill-brand text-brand' : 'text-base-300'}
+                      className={i < Math.floor(rating) ? 'fill-brand text-brand' : 'text-base-300'}
                     />
                   ))}
                 </div>
-                <span className="text-small text-surface-secondary">{product.rating} ({product.reviews} reviews)</span>
-                <span className="badge-success">In Stock</span>
+                <span className="text-small text-surface-secondary">{rating} ({reviewsCount} reviews)</span>
+                {product.in_stock ? (
+                  <span className="badge-success">In Stock</span>
+                ) : (
+                  <span className="badge-danger font-bold">Sold Out</span>
+                )}
               </motion.div>
             </div>
 
@@ -199,10 +252,10 @@ export default function ProductDetail() {
               <span className="font-black text-[2rem] text-surface-primary leading-none">
                 {formatPrice(product.price)}
               </span>
-              {product.originalPrice && (
+              {originalPrice && (
                 <>
                   <span className="text-h4 text-surface-muted line-through leading-none mb-1">
-                    {formatPrice(product.originalPrice)}
+                    {formatPrice(originalPrice)}
                   </span>
                   <span className="badge-brand leading-none mb-1">Save {discount}%</span>
                 </>
@@ -212,66 +265,73 @@ export default function ProductDetail() {
             <div className="divider" />
 
             {/* Size Selector */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <p className="font-semibold text-small">Select Size</p>
-                <button className="text-xs text-brand hover:text-brand-400 transition-colors">
-                  Size Guide
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {product.sizes.map(size => (
-                  <button
-                    key={size}
-                    onClick={() => { setSelectedSize(size); setSizeError(false); }}
-                    className={`min-w-[48px] h-12 px-3 rounded-lg border font-semibold text-small transition-all duration-200 ${
-                      selectedSize === size
-                        ? 'border-brand bg-brand text-white shadow-glow-sm'
-                        : 'border-base-300 text-surface-secondary hover:border-brand/50 hover:text-surface-primary'
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
-              </div>
-              <AnimatePresence>
-                {sizeError && (
-                  <motion.p
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="text-xs text-red-400 mt-2"
-                  >
-                    Please select a size to continue
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </motion.div>
+            {product.sizes?.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="font-semibold text-small">Select Size</p>
+                  {product.size_guide && (
+                    <button
+                      onClick={() => setSizeGuideOpen(true)}
+                      className="text-xs font-bold text-brand hover:text-brand-400 transition-colors flex items-center gap-1"
+                    >
+                      <Ruler size={14} />
+                      Size Guide
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {product.sizes.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => {
+                        setSelectedSize(size);
+                        setSizeError(false);
+                      }}
+                      className={`min-w-[48px] h-12 px-3 rounded-lg border font-semibold text-small transition-all duration-200 ${
+                        selectedSize === size
+                          ? 'border-brand bg-brand text-white shadow-glow-sm'
+                          : 'border-base-300 text-surface-secondary hover:border-brand/50 hover:text-surface-primary'
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+                <AnimatePresence>
+                  {sizeError && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="text-xs text-red-400 mt-2 font-medium"
+                    >
+                      Please select a size to continue
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )}
 
             {/* Add to Cart */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.35 }}
-              className="space-y-3"
-            >
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="space-y-3">
               <motion.button
                 id="add-to-cart-btn"
+                disabled={product.in_stock === false}
                 onClick={handleAddToCart}
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: product.in_stock !== false ? 0.98 : 1 }}
                 className={`w-full flex items-center justify-center gap-3 py-4 rounded-xl font-bold text-base tracking-wide transition-all duration-300 relative overflow-hidden ${
-                  added
+                  product.in_stock === false
+                    ? 'bg-base-600 text-surface-muted cursor-not-allowed border border-base-300'
+                    : added
                     ? 'bg-emerald-500 text-white shadow-[0_0_30px_rgba(16,185,129,0.4)]'
                     : adding
                     ? 'bg-brand/80 text-white'
                     : 'bg-brand text-white hover:bg-brand-400 shadow-glow hover:shadow-glow-lg'
                 }`}
               >
-                {added ? (
+                {product.in_stock === false ? (
+                  'Currently Stock Out'
+                ) : added ? (
                   <>
                     <Check size={20} className="stroke-[2.5]" />
                     Added to Cart!
@@ -295,18 +355,13 @@ export default function ProductDetail() {
             </motion.div>
 
             {/* Trust Badges */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.45 }}
-              className="grid grid-cols-3 gap-3"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }} className="grid grid-cols-3 gap-3">
               {[
                 { icon: Truck, label: 'Free Delivery', sub: 'Dhaka metro' },
                 { icon: RotateCcw, label: 'Easy Returns', sub: '7 days' },
                 { icon: Shield, label: 'Authentic', sub: '100% genuine' },
               ].map(({ icon: Icon, label, sub }) => (
-                <div key={label} className="glass rounded-lg p-3 text-center">
+                <div key={label} className="glass rounded-lg p-3 text-center border border-base-300">
                   <Icon size={16} className="text-brand mx-auto mb-1.5" />
                   <p className="text-xs font-semibold text-surface-primary">{label}</p>
                   <p className="text-[10px] text-surface-muted">{sub}</p>
@@ -336,8 +391,8 @@ export default function ProductDetail() {
                       transition={{ duration: 0.25 }}
                       className="overflow-hidden"
                     >
-                      <p className="px-4 pb-4 text-small text-surface-secondary leading-relaxed">
-                        {product.longDescription}
+                      <p className="px-4 pb-4 text-small text-surface-secondary leading-relaxed whitespace-pre-line">
+                        {longDesc}
                       </p>
                     </motion.div>
                   )}
@@ -363,7 +418,7 @@ export default function ProductDetail() {
                       className="overflow-hidden"
                     >
                       <ul className="px-4 pb-4 space-y-2">
-                        {product.features.map(f => (
+                        {featuresList.map((f) => (
                           <li key={f} className="flex items-center gap-2 text-small text-surface-secondary">
                             <Check size={13} className="text-brand flex-shrink-0" />
                             {f}
@@ -382,7 +437,7 @@ export default function ProductDetail() {
         {productReviews.length > 0 && (
           <div className="mt-20">
             <div className="flex items-end justify-between mb-8">
-              <div>
+               <div>
                 <p className="section-label mb-2">Reviews</p>
                 <h2 className="font-bold text-h3">What people say</h2>
               </div>
@@ -390,7 +445,7 @@ export default function ProductDetail() {
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} size={16} className="fill-brand text-brand" />
                 ))}
-                <span className="font-bold text-surface-primary">{product.rating}</span>
+                <span className="font-bold text-surface-primary">{rating}</span>
               </div>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -401,7 +456,7 @@ export default function ProductDetail() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
-                  className="glass rounded-xl p-5"
+                  className="glass rounded-xl p-5 border border-base-300"
                 >
                   <div className="flex items-center gap-0.5 mb-3">
                     {[...Array(review.rating)].map((_, j) => (
@@ -447,6 +502,63 @@ export default function ProductDetail() {
         )}
       </div>
 
+      {/* Size Guide Modal */}
+      <AnimatePresence>
+        {sizeGuideOpen && product.size_guide && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+              onClick={() => setSizeGuideOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div className="glass-dark rounded-3xl p-8 max-w-md w-full border border-base-300 shadow-2xl relative z-10">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2 text-brand font-bold">
+                    <Ruler size={20} />
+                    <span>Size Measurements (Inches)</span>
+                  </div>
+                  <button onClick={() => setSizeGuideOpen(false)} className="btn-icon">
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="rounded-2xl border border-base-300 overflow-hidden bg-base-950">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-base-300 bg-base-900/50">
+                        <th className="py-3 px-4 text-xs font-bold text-surface-secondary uppercase tracking-wider">Size</th>
+                        <th className="py-3 px-4 text-xs font-bold text-surface-secondary uppercase tracking-wider">Dimensions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-base-300/50">
+                      {Object.entries(product.size_guide).map(([sz, meas]) => (
+                        <tr key={sz} className="hover:bg-base-900/30 transition-colors">
+                          <td className="py-3 px-4 font-mono font-bold text-brand">{sz}</td>
+                          <td className="py-3 px-4 text-xs text-surface-primary">{meas}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <button
+                  onClick={() => setSizeGuideOpen(false)}
+                  className="w-full py-3.5 rounded-xl bg-brand hover:bg-brand-400 text-white font-bold text-small mt-6 shadow-glow transition-all duration-200"
+                >
+                  Got It
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* ─── Sticky Mobile ATC ─── */}
       <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden p-4 glass-dark border-t border-base-300">
         <div className="flex items-center gap-3 max-w-lg mx-auto">
@@ -455,13 +567,27 @@ export default function ProductDetail() {
             <p className="text-brand font-bold">{formatPrice(product.price)}</p>
           </div>
           <button
+            disabled={product.in_stock === false}
             onClick={handleAddToCart}
             className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-small transition-all duration-300 ${
-              added ? 'bg-emerald-500 text-white' : 'bg-brand text-white hover:bg-brand-400 shadow-glow'
+              product.in_stock === false
+                ? 'bg-base-600 text-surface-muted'
+                : added
+                ? 'bg-emerald-500 text-white'
+                : 'bg-brand text-white hover:bg-brand-400 shadow-glow'
             }`}
           >
-            {added ? <Check size={16} /> : <ShoppingBag size={16} />}
-            {added ? 'Added!' : 'Add to Cart'}
+            {product.in_stock === false ? (
+              'Stock Out'
+            ) : added ? (
+              <>
+                <Check size={16} /> Added!
+              </>
+            ) : (
+              <>
+                <ShoppingBag size={16} /> Add
+              </>
+            )}
           </button>
         </div>
       </div>

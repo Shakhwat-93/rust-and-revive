@@ -1,9 +1,8 @@
-// src/pages/Shop.jsx
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SlidersHorizontal, X, ChevronDown, Search, Grid2X2, Grid3X3 } from 'lucide-react';
-import { products, categories } from '../data/products';
+import { SlidersHorizontal, Search, ChevronDown, Grid2X2, Grid3X3, Loader2 } from 'lucide-react';
+import { getProducts, getCategories, getSiteSettings } from '../lib/api';
 import ProductCard from '../components/shop/ProductCard';
 
 const sortOptions = [
@@ -24,6 +23,14 @@ const priceRanges = [
 
 export default function Shop() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [shopSettings, setShopSettings] = useState({
+    title: 'Shop All',
+    subtitle: 'The Catalog',
+  });
+  const [loading, setLoading] = useState(true);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [grid, setGrid] = useState('3');
@@ -33,6 +40,29 @@ export default function Shop() {
   const activeSort = searchParams.get('sort') || 'featured';
   const searchQuery = searchParams.get('q') || '';
 
+  useEffect(() => {
+    async function loadData() {
+      setLoading(true);
+      try {
+        const [prodList, catList, shopSiteData] = await Promise.all([
+          getProducts(),
+          getCategories(),
+          getSiteSettings('shop_page'),
+        ]);
+        setProducts(prodList);
+        setCategories(catList);
+        if (shopSiteData) {
+          setShopSettings({ title: 'Shop All', subtitle: 'The Catalog', ...shopSiteData });
+        }
+      } catch (err) {
+        console.error('Error fetching catalog:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
   const updateParam = (key, val) => {
     const params = new URLSearchParams(searchParams);
     if (val === 'all' || val === '' || val === 'featured') params.delete(key);
@@ -40,40 +70,68 @@ export default function Shop() {
     setSearchParams(params);
   };
 
+  const computedCategories = useMemo(() => {
+    const allCount = products.length;
+    const catCounts = { all: allCount };
+
+    categories.forEach((c) => {
+      catCounts[c.slug] = products.filter((p) => p.category === c.slug).length;
+    });
+
+    return [
+      { id: 'all', label: 'All Items', count: allCount },
+      ...categories.map((c) => ({
+        id: c.slug,
+        label: c.name,
+        count: catCounts[c.slug] || 0,
+      })),
+    ];
+  }, [products, categories]);
+
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
     // Category
     if (activeCategory !== 'all') {
-      result = result.filter(p => p.category === activeCategory);
+      result = result.filter((p) => p.category === activeCategory);
     }
 
     // Price
     if (activePrice !== 'all') {
       const [min, max] = activePrice === '5000+' ? [5000, Infinity] : activePrice.split('-').map(Number);
-      result = result.filter(p => p.price >= min && p.price <= max);
+      result = result.filter((p) => p.price >= min && p.price <= max);
     }
 
     // Search
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(p =>
-        p.name.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q) ||
-        p.tags.some(t => t.includes(q))
+      result = result.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.category?.toLowerCase().includes(q) ||
+          (p.tags && p.tags.some((t) => t.toLowerCase().includes(q))) ||
+          p.slug.toLowerCase().includes(q)
       );
     }
 
     // Sort
     switch (activeSort) {
-      case 'price-asc': result.sort((a, b) => a.price - b.price); break;
-      case 'price-desc': result.sort((a, b) => b.price - a.price); break;
-      case 'newest': result.sort((a, b) => (b.new ? 1 : 0) - (a.new ? 1 : 0)); break;
-      case 'rating': result.sort((a, b) => b.rating - a.rating); break;
+      case 'price-asc':
+        result.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-desc':
+        result.sort((a, b) => b.price - a.price);
+        break;
+      case 'newest':
+        result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        break;
+      case 'rating':
+        result.sort((a, b) => (b.rating || 5) - (a.rating || 5));
+        break;
     }
 
     return result;
-  }, [activeCategory, activePrice, activeSort, searchQuery]);
+  }, [products, activeCategory, activePrice, activeSort, searchQuery]);
 
   const activeFiltersCount = [
     activeCategory !== 'all',
@@ -85,15 +143,11 @@ export default function Shop() {
     <div className="min-h-screen pt-20 pb-20">
       {/* ─── Page Header ─── */}
       <div className="container-site py-10 lg:py-14">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <p className="section-label mb-2">The Catalog</p>
-          <h1 className="font-black text-h1 mb-2">Shop All</h1>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <p className="section-label mb-2">{shopSettings.subtitle}</p>
+          <h1 className="font-black text-h1 mb-2">{shopSettings.title}</h1>
           <p className="text-surface-secondary">
-            {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'} found
+            {loading ? 'Loading catalog...' : `${filteredProducts.length} ${filteredProducts.length === 1 ? 'product' : 'products'} found`}
           </p>
         </motion.div>
       </div>
@@ -128,7 +182,7 @@ export default function Shop() {
                 type="text"
                 placeholder="Search products..."
                 value={searchQuery}
-                onChange={e => updateParam('q', e.target.value)}
+                onChange={(e) => updateParam('q', e.target.value)}
                 className="input pl-9 py-2.5"
                 id="shop-search"
               />
@@ -143,7 +197,7 @@ export default function Shop() {
                 onClick={() => setSortOpen(!sortOpen)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-base-300 text-small text-surface-secondary hover:border-brand/30 hover:text-surface-primary transition-all duration-200"
               >
-                {sortOptions.find(o => o.val === activeSort)?.label}
+                {sortOptions.find((o) => o.val === activeSort)?.label}
                 <ChevronDown size={14} className={`transition-transform ${sortOpen ? 'rotate-180' : ''}`} />
               </button>
               <AnimatePresence>
@@ -155,10 +209,13 @@ export default function Shop() {
                     transition={{ duration: 0.15 }}
                     className="absolute right-0 top-full mt-2 w-52 glass-dark rounded-xl border border-base-300 overflow-hidden z-20 shadow-card-lg"
                   >
-                    {sortOptions.map(opt => (
+                    {sortOptions.map((opt) => (
                       <button
                         key={opt.val}
-                        onClick={() => { updateParam('sort', opt.val); setSortOpen(false); }}
+                        onClick={() => {
+                          updateParam('sort', opt.val);
+                          setSortOpen(false);
+                        }}
                         className={`w-full text-left px-4 py-3 text-small transition-colors duration-150 ${
                           activeSort === opt.val
                             ? 'text-brand bg-brand/10'
@@ -193,7 +250,7 @@ export default function Shop() {
 
         {/* ─── Category Chips ─── */}
         <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-2 mb-8">
-          {categories.map(cat => (
+          {computedCategories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => updateParam('cat', cat.id)}
@@ -236,7 +293,7 @@ export default function Shop() {
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-widest text-surface-muted mb-3">Category</p>
                     <div className="space-y-1">
-                      {categories.map(cat => (
+                      {computedCategories.map((cat) => (
                         <button
                           key={cat.id}
                           onClick={() => updateParam('cat', cat.id)}
@@ -259,7 +316,7 @@ export default function Shop() {
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-widest text-surface-muted mb-3">Price Range</p>
                     <div className="space-y-1">
-                      {priceRanges.map(range => (
+                      {priceRanges.map((range) => (
                         <button
                           key={range.val}
                           onClick={() => updateParam('price', range.val)}
@@ -281,39 +338,44 @@ export default function Shop() {
 
           {/* ─── Product Grid ─── */}
           <div className="flex-1 min-w-0">
-            <AnimatePresence mode="wait">
-              {filteredProducts.length === 0 ? (
-                <motion.div
-                  key="empty"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex flex-col items-center justify-center py-24 gap-4 text-center"
-                >
-                  <div className="text-4xl">🔍</div>
-                  <h3 className="font-bold text-h4">No products found</h3>
-                  <p className="text-surface-muted text-small">Try adjusting your filters</p>
-                  <button onClick={() => setSearchParams({})} className="btn-primary mt-2">
-                    Clear Filters
-                  </button>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key={`grid-${activeCategory}-${activeSort}-${grid}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                  className={`grid gap-5 lg:gap-6 ${
-                    grid === '2'
-                      ? 'grid-cols-2 lg:grid-cols-2'
-                      : 'grid-cols-2 lg:grid-cols-3'
-                  }`}
-                >
-                  {filteredProducts.map((product, i) => (
-                    <ProductCard key={product.id} product={product} index={i} />
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-24 gap-4">
+                <Loader2 size={36} className="text-brand animate-spin" />
+                <p className="text-surface-muted text-small font-mono uppercase tracking-widest">Fetching Catalog...</p>
+              </div>
+            ) : (
+              <AnimatePresence mode="wait">
+                {filteredProducts.length === 0 ? (
+                  <motion.div
+                    key="empty"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex flex-col items-center justify-center py-24 gap-4 text-center"
+                  >
+                    <div className="text-4xl">🔍</div>
+                    <h3 className="font-bold text-h4">No products found</h3>
+                    <p className="text-surface-muted text-small">Try adjusting your filters</p>
+                    <button onClick={() => setSearchParams({})} className="btn-primary mt-2">
+                      Clear Filters
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key={`grid-${activeCategory}-${activeSort}-${grid}`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className={`grid gap-5 lg:gap-6 ${
+                      grid === '2' ? 'grid-cols-2 lg:grid-cols-2' : 'grid-cols-2 lg:grid-cols-3'
+                    }`}
+                  >
+                    {filteredProducts.map((product, i) => (
+                      <ProductCard key={product.id} product={product} index={i} />
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            )}
           </div>
         </div>
       </div>
