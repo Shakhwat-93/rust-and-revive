@@ -45,13 +45,10 @@ export default function Footer() {
         <div className="flex flex-col lg:flex-row gap-12 lg:gap-24 mb-16">
           {/* Brand */}
           <div className="lg:w-80 flex-shrink-0">
-            <Link to="/" className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shadow-glow-sm">
+            <Link to="/" className="inline-block mb-4">
+              <div className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center shadow-glow-sm">
                 <img src="/logo.jpg" alt="Rust Revive Logo" className="w-full h-full object-cover" />
               </div>
-              <span className="font-black text-lg tracking-tight">
-                RUST<span className="text-brand">.</span>REVIVE
-              </span>
             </Link>
             <p className="text-surface-secondary text-small leading-relaxed mb-6">
               Premium streetwear for the next generation. Built for the streets of Dhaka and worn everywhere.

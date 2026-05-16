@@ -45,13 +45,10 @@ export default function Navbar() {
           <div className="flex items-center justify-between h-16 lg:h-20">
 
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shadow-glow-sm group-hover:shadow-glow transition-shadow duration-300">
+            <Link to="/" className="flex items-center group">
+              <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-full overflow-hidden flex items-center justify-center shadow-glow-sm group-hover:shadow-glow transition-shadow duration-300">
                 <img src="/logo.jpg" alt="Rust Revive Logo" className="w-full h-full object-cover" />
               </div>
-              <span className="font-black text-lg tracking-tight">
-                RUST<span className="text-brand">.</span>REVIVE
-              </span>
             </Link>
 
             {/* Desktop Nav */}
