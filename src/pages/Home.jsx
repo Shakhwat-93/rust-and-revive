@@ -1,10 +1,18 @@
 import { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { ArrowRight, ChevronRight, Play, Zap, Star, TrendingUp, Loader2 } from 'lucide-react';
+import { ArrowRight, ChevronRight, Zap, Star, TrendingUp, Loader2, Heart, MessageCircle, Sparkles, ExternalLink } from 'lucide-react';
 import { getProducts, getSiteSettings } from '../lib/api';
 import { collections } from '../data/products';
 import ProductCard from '../components/shop/ProductCard';
+
+const InstagramIcon = ({ size = 24, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+  </svg>
+);
 
 const formatPrice = (p) => `৳${Number(p).toLocaleString('en-BD')}`;
 
@@ -37,8 +45,10 @@ const defaultHome = {
     { val: "0", label: "Compromise" }
   ],
 
-  testimonialsLabel: "Social Proof",
-  testimonialsTitle: "The Streets Don't Lie"
+  instagramLabel: "Join The Culture",
+  instagramTitle: "Follow @rust.revive",
+  instagramSubtext: "Tag us in your street fits to get featured on our official channel.",
+  instagramUrl: "https://www.instagram.com/rust.revive?igsh=MWl3Y3N0MmM0MGRhMQ%3D%3D&utm_source=qr"
 };
 
 /* ─── Scroll Reveal Wrapper ─────────────────────────────────────────── */
@@ -355,48 +365,103 @@ function BrandStory({ settings }) {
   );
 }
 
-/* ─── Testimonials ───────────────────────────────────────────────────── */
-function Testimonials({ settings }) {
-  const reviews = [
-    { name: 'Arif R.', city: 'Dhaka', rating: 5, text: 'Best quality hoodie I\'ve found in BD. The rust color is insane IRL. Already ordered my second one.' },
-    { name: 'Nadia I.', city: 'Chittagong', rating: 5, text: 'Fast delivery, premium packaging. Feels like ordering from a global brand but local. Love the brand story.' },
-    { name: 'Sakib H.', city: 'Sylhet', rating: 5, text: 'The cargo pants are elite. 6 deep pockets, quality stitching, perfect fit. Worth every taka.' },
-    { name: 'Tania M.', city: 'Dhaka', rating: 5, text: 'The graphic tee quality blew me away. Heavyweight cotton, great print. I\'ve washed it 10+ times and it\'s still perfect.' },
+/* ─── Instagram / Community Section ────────────────────────────────── */
+function InstagramSection({ settings }) {
+  const instaUrl = settings.instagramUrl || defaultHome.instagramUrl;
+  const feedImages = [
+    { src: "/images/hoodie-rust.webp", likes: "1.2k", comments: "84" },
+    { src: "/images/hoodie-black.webp", likes: "956", comments: "42" },
+    { src: "/images/tee-street.webp", likes: "2.4k", comments: "128" },
+    { src: "/images/cargo-fit.webp", likes: "1.8k", comments: "96" },
   ];
 
   return (
-    <section className="py-24 lg:py-32">
-      <div className="container-site">
+    <section className="py-24 lg:py-32 overflow-hidden relative">
+      <div className="absolute inset-0 bg-gradient-to-t from-brand/5 via-transparent to-transparent pointer-events-none" />
+
+      <div className="container-site relative z-10">
         <Reveal className="text-center mb-12">
-          <p className="section-label mb-3">{settings.testimonialsLabel || defaultHome.testimonialsLabel}</p>
-          <h2 className="font-bold text-h2">{settings.testimonialsTitle || defaultHome.testimonialsTitle}</h2>
+          <p className="section-label mb-3">{settings.instagramLabel || defaultHome.instagramLabel}</p>
+          <h2 className="font-bold text-h2 mb-4">{settings.instagramTitle || defaultHome.instagramTitle}</h2>
+          <p className="text-surface-secondary max-w-md mx-auto">
+            {settings.instagramSubtext || defaultHome.instagramSubtext}
+          </p>
         </Reveal>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {reviews.map((review, i) => (
-            <Reveal key={review.name} delay={i * 0.08}>
-              <div className="glass rounded-xl p-5 h-full card-hover">
-                <div className="flex items-center gap-0.5 mb-3">
-                  {[...Array(review.rating)].map((_, j) => (
-                    <Star key={j} size={12} className="fill-brand text-brand" />
-                  ))}
+        {/* Big Social Card */}
+        <Reveal delay={0.2} className="max-w-4xl mx-auto">
+          <div className="glass rounded-3xl overflow-hidden border border-base-300 shadow-glass-lg group relative bg-base-900/60 backdrop-blur-xl p-6 sm:p-8">
+            {/* Top Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-4 pb-6 mb-6 border-b border-base-300/80">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-yellow-500 via-red-500 to-purple-600 p-0.5 flex-shrink-0">
+                  <div className="w-full h-full bg-base-900 rounded-full flex items-center justify-center p-1">
+                    <img src="/images/hoodie-rust.webp" alt="Profile" className="w-full h-full rounded-full object-cover" />
+                  </div>
                 </div>
-                <p className="text-small text-surface-secondary leading-relaxed mb-4">
-                  "{review.text}"
-                </p>
-                <div className="flex items-center gap-2 mt-auto">
-                  <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-xs font-bold text-brand">
-                    {review.name[0]}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-base text-surface-primary">rust.revive</h3>
+                    <span className="w-4 h-4 rounded-full bg-blue-500 text-white flex items-center justify-center text-[10px] font-bold">✓</span>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold text-surface-primary">{review.name}</p>
-                    <p className="text-[10px] text-surface-muted">{review.city}</p>
-                  </div>
+                  <p className="text-xs text-surface-muted">Streetwear Brand • Bangladesh</p>
                 </div>
               </div>
-            </Reveal>
-          ))}
-        </div>
+
+              <a
+                href={instaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-brand hover:bg-brand-400 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-full flex items-center gap-2 shadow-glow transition-all duration-300 hover:scale-105 flex-shrink-0"
+              >
+                <InstagramIcon size={18} />
+                <span>Follow Official</span>
+              </a>
+            </div>
+
+            {/* Grid of Feed */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+              {feedImages.map((img, idx) => (
+                <a
+                  key={idx}
+                  href={instaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative aspect-square rounded-2xl overflow-hidden group/item bg-base-800 block shadow-md"
+                >
+                  <img src={img.src} alt="Instagram post" className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500 ease-out" />
+                  <div className="absolute inset-0 bg-base-950/70 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4 text-white backdrop-blur-[2px]">
+                    <div className="flex items-center gap-1.5 font-bold text-xs">
+                      <Heart size={16} className="fill-white text-white" />
+                      <span>{img.likes}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 font-bold text-xs">
+                      <MessageCircle size={16} className="fill-white text-white" />
+                      <span>{img.comments}</span>
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+
+            {/* Bottom Footer CTA inside card */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-base-300/50">
+              <div className="flex items-center gap-3">
+                <Sparkles size={18} className="text-brand flex-shrink-0" />
+                <span className="text-xs text-surface-secondary font-medium">Join 5,000+ streetwear enthusiasts across Bangladesh</span>
+              </div>
+              <a
+                href={instaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-ghost text-xs text-brand font-bold inline-flex items-center gap-1 group/btn"
+              >
+                <span>Explore Instagram Feed</span>
+                <ExternalLink size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+              </a>
+            </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
@@ -440,7 +505,7 @@ export default function Home() {
         </>
       )}
       <BrandStory settings={settings} />
-      <Testimonials settings={settings} />
+      <InstagramSection settings={settings} />
     </main>
   );
 }

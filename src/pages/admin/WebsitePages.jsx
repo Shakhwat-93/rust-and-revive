@@ -3,6 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Save, Check, Globe, Layout, Type, FileText, Loader2, Image, Layers, Star } from 'lucide-react';
 import { getSiteSettings, updateSiteSettings } from '../../lib/api';
 
+const InstagramIcon = ({ size = 24, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+  </svg>
+);
+
 const defaultHome = {
   heroBgImage: "/images/hero-banner.webp",
   heroBadge: "New Season Drop",
@@ -32,8 +40,10 @@ const defaultHome = {
     { val: "0", label: "Compromise" }
   ],
 
-  testimonialsLabel: "Social Proof",
-  testimonialsTitle: "The Streets Don't Lie"
+  instagramLabel: "Join The Culture",
+  instagramTitle: "Follow @rust.revive",
+  instagramSubtext: "Tag us in your street fits to get featured on our official channel.",
+  instagramUrl: "https://www.instagram.com/rust.revive?igsh=MWl3Y3N0MmM0MGRhMQ%3D%3D&utm_source=qr"
 };
 
 const defaultShop = {
@@ -124,7 +134,7 @@ export default function WebsitePages() {
             Website Content Manager
           </h1>
           <p className="text-surface-secondary text-small mt-1">
-            Dynamically update live website copy, section headings, and images in real-time.
+            Dynamically update live website copy, section headings, images, and social links in real-time.
           </p>
         </div>
         <button
@@ -437,11 +447,11 @@ export default function WebsitePages() {
                 </div>
               </div>
 
-              {/* Testimonials Section Header */}
+              {/* Instagram / Social Section Header */}
               <div className="glass rounded-2xl p-6 border border-base-300 space-y-5">
                 <h2 className="font-bold text-h5 text-brand border-b border-base-300/50 pb-3 flex items-center gap-2">
-                  <Star size={18} />
-                  Testimonials Section Header
+                  <InstagramIcon size={18} />
+                  Instagram Community Section
                 </h2>
 
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -450,8 +460,8 @@ export default function WebsitePages() {
                     <input
                       type="text"
                       className="input"
-                      value={homeData.testimonialsLabel || ''}
-                      onChange={(e) => handleHomeChange('testimonialsLabel', e.target.value)}
+                      value={homeData.instagramLabel || ''}
+                      onChange={(e) => handleHomeChange('instagramLabel', e.target.value)}
                     />
                   </div>
                   <div>
@@ -459,10 +469,34 @@ export default function WebsitePages() {
                     <input
                       type="text"
                       className="input font-bold"
-                      value={homeData.testimonialsTitle || ''}
-                      onChange={(e) => handleHomeChange('testimonialsTitle', e.target.value)}
+                      value={homeData.instagramTitle || ''}
+                      onChange={(e) => handleHomeChange('instagramTitle', e.target.value)}
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="label">Section Subtext</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={homeData.instagramSubtext || ''}
+                    onChange={(e) => handleHomeChange('instagramSubtext', e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="label flex items-center gap-1.5 font-bold text-brand">
+                    <InstagramIcon size={15} />
+                    Official Instagram Account URL
+                  </label>
+                  <input
+                    type="text"
+                    className="input font-mono text-xs"
+                    value={homeData.instagramUrl || ''}
+                    onChange={(e) => handleHomeChange('instagramUrl', e.target.value)}
+                  />
+                  <p className="text-xs text-surface-muted mt-1">This link will open when users click "Follow Official" or any feed item.</p>
                 </div>
               </div>
             </motion.div>
