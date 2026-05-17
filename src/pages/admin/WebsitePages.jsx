@@ -43,7 +43,14 @@ const defaultHome = {
   instagramLabel: "Join The Culture",
   instagramTitle: "Follow @rust.revive",
   instagramSubtext: "Tag us in your street fits to get featured on our official channel.",
-  instagramUrl: "https://www.instagram.com/rust.revive?igsh=MWl3Y3N0MmM0MGRhMQ%3D%3D&utm_source=qr"
+  instagramUrl: "https://www.instagram.com/rust.revive?igsh=MWl3Y3N0MmM0MGRhMQ%3D%3D&utm_source=qr",
+  instagramProfileImage: "/images/hoodie-rust.webp",
+  instagramImages: [
+    { src: "/images/hoodie-rust.webp", likes: "1.2k", comments: "84" },
+    { src: "/images/hoodie-black.webp", likes: "956", comments: "42" },
+    { src: "/images/tee-charcoal.webp", likes: "2.4k", comments: "128" },
+    { src: "/images/cargo-black.webp", likes: "1.8k", comments: "96" },
+  ]
 };
 
 const defaultShop = {
@@ -71,7 +78,8 @@ export default function WebsitePages() {
         ]);
 
         if (h) {
-          setHomeData({ ...defaultHome, ...h });
+          const mergedH = { ...defaultHome, ...h };
+          setHomeData(mergedH);
           setStatsText(JSON.stringify(h.brandStoryStats || defaultHome.brandStoryStats, null, 2));
         }
         if (s) {
@@ -123,6 +131,8 @@ export default function WebsitePages() {
       setSaving(false);
     }
   };
+
+  const currentInstaImages = homeData.instagramImages || defaultHome.instagramImages;
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6 pb-24">
@@ -213,7 +223,7 @@ export default function WebsitePages() {
                 </h2>
 
                 <div>
-                  <label className="label flex items-center gap-1.5">
+                  <label className="label flex items-center gap-1.5 font-bold">
                     <Image size={15} className="text-brand" />
                     Hero Background Image URL
                   </label>
@@ -383,7 +393,7 @@ export default function WebsitePages() {
                 </h2>
 
                 <div>
-                  <label className="label flex items-center gap-1.5">
+                  <label className="label flex items-center gap-1.5 font-bold">
                     <Image size={15} className="text-brand" />
                     Brand Story Image URL
                   </label>
@@ -485,18 +495,104 @@ export default function WebsitePages() {
                   />
                 </div>
 
-                <div>
-                  <label className="label flex items-center gap-1.5 font-bold text-brand">
-                    <InstagramIcon size={15} />
-                    Official Instagram Account URL
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="label flex items-center gap-1.5 font-bold text-brand">
+                      <InstagramIcon size={15} />
+                      Official Instagram Account URL
+                    </label>
+                    <input
+                      type="text"
+                      className="input font-mono text-xs"
+                      value={homeData.instagramUrl || ''}
+                      onChange={(e) => handleHomeChange('instagramUrl', e.target.value)}
+                    />
+                    <p className="text-xs text-surface-muted mt-1">Opens when users click "Follow Official" or any feed item.</p>
+                  </div>
+
+                  <div>
+                    <label className="label flex items-center gap-1.5 font-bold">
+                      <Image size={15} className="text-brand" />
+                      Brand Profile Avatar Image URL
+                    </label>
+                    <input
+                      type="text"
+                      className="input font-mono text-xs"
+                      value={homeData.instagramProfileImage || ''}
+                      onChange={(e) => handleHomeChange('instagramProfileImage', e.target.value)}
+                    />
+                    <p className="text-xs text-surface-muted mt-1">Circular avatar photo for rust.revive in the showcase card.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-base-300/50">
+                  <label className="label font-bold text-brand flex items-center gap-1.5">
+                    <Image size={15} />
+                    Instagram Feed Showcase Images (4 Posts)
                   </label>
-                  <input
-                    type="text"
-                    className="input font-mono text-xs"
-                    value={homeData.instagramUrl || ''}
-                    onChange={(e) => handleHomeChange('instagramUrl', e.target.value)}
-                  />
-                  <p className="text-xs text-surface-muted mt-1">This link will open when users click "Follow Official" or any feed item.</p>
+                  <p className="text-xs text-surface-muted">Customize the 4 showcase photos and their engagement counts displayed in the interactive grid.</p>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {currentInstaImages.map((item, idx) => (
+                      <div key={idx} className="p-4 rounded-xl bg-base-950 border border-base-300 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-surface-primary">Post Card #{idx + 1}</span>
+                          <div className="w-10 h-10 rounded-lg overflow-hidden bg-base-800 border border-base-300 flex-shrink-0">
+                            <img src={item.src} alt="" className="w-full h-full object-cover" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] uppercase font-bold text-surface-secondary">Image URL</label>
+                          <input
+                            type="text"
+                            className="input text-xs font-mono"
+                            value={item.src || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setHomeData((prev) => {
+                                const arr = [...(prev.instagramImages || defaultHome.instagramImages)];
+                                arr[idx] = { ...arr[idx], src: val };
+                                return { ...prev, instagramImages: arr };
+                              });
+                            }}
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] uppercase font-bold text-surface-secondary">Likes</label>
+                            <input
+                              type="text"
+                              className="input text-xs font-mono"
+                              value={item.likes || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setHomeData((prev) => {
+                                  const arr = [...(prev.instagramImages || defaultHome.instagramImages)];
+                                  arr[idx] = { ...arr[idx], likes: val };
+                                  return { ...prev, instagramImages: arr };
+                                });
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] uppercase font-bold text-surface-secondary">Comments</label>
+                            <input
+                              type="text"
+                              className="input text-xs font-mono"
+                              value={item.comments || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setHomeData((prev) => {
+                                  const arr = [...(prev.instagramImages || defaultHome.instagramImages)];
+                                  arr[idx] = { ...arr[idx], comments: val };
+                                  return { ...prev, instagramImages: arr };
+                                });
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </motion.div>

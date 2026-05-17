@@ -48,7 +48,14 @@ const defaultHome = {
   instagramLabel: "Join The Culture",
   instagramTitle: "Follow @rust.revive",
   instagramSubtext: "Tag us in your street fits to get featured on our official channel.",
-  instagramUrl: "https://www.instagram.com/rust.revive?igsh=MWl3Y3N0MmM0MGRhMQ%3D%3D&utm_source=qr"
+  instagramUrl: "https://www.instagram.com/rust.revive?igsh=MWl3Y3N0MmM0MGRhMQ%3D%3D&utm_source=qr",
+  instagramProfileImage: "/images/hoodie-rust.webp",
+  instagramImages: [
+    { src: "/images/hoodie-rust.webp", likes: "1.2k", comments: "84" },
+    { src: "/images/hoodie-black.webp", likes: "956", comments: "42" },
+    { src: "/images/tee-charcoal.webp", likes: "2.4k", comments: "128" },
+    { src: "/images/cargo-black.webp", likes: "1.8k", comments: "96" },
+  ]
 };
 
 /* ─── Scroll Reveal Wrapper ─────────────────────────────────────────── */
@@ -368,12 +375,10 @@ function BrandStory({ settings }) {
 /* ─── Instagram / Community Section ────────────────────────────────── */
 function InstagramSection({ settings }) {
   const instaUrl = settings.instagramUrl || defaultHome.instagramUrl;
-  const feedImages = [
-    { src: "/images/hoodie-rust.webp", likes: "1.2k", comments: "84" },
-    { src: "/images/hoodie-black.webp", likes: "956", comments: "42" },
-    { src: "/images/tee-street.webp", likes: "2.4k", comments: "128" },
-    { src: "/images/cargo-fit.webp", likes: "1.8k", comments: "96" },
-  ];
+  const profileImg = settings.instagramProfileImage || defaultHome.instagramProfileImage;
+  const feedImages = settings.instagramImages && settings.instagramImages.length === 4
+    ? settings.instagramImages
+    : defaultHome.instagramImages;
 
   return (
     <section className="py-24 lg:py-32 overflow-hidden relative">
@@ -395,8 +400,8 @@ function InstagramSection({ settings }) {
             <div className="flex flex-wrap items-center justify-between gap-4 pb-6 mb-6 border-b border-base-300/80">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-yellow-500 via-red-500 to-purple-600 p-0.5 flex-shrink-0">
-                  <div className="w-full h-full bg-base-900 rounded-full flex items-center justify-center p-1">
-                    <img src="/images/hoodie-rust.webp" alt="Profile" className="w-full h-full rounded-full object-cover" />
+                  <div className="w-full h-full bg-base-900 rounded-full flex items-center justify-center p-1 overflow-hidden">
+                    <img src={profileImg} alt="Profile" className="w-full h-full rounded-full object-cover" />
                   </div>
                 </div>
                 <div>
@@ -427,7 +432,7 @@ function InstagramSection({ settings }) {
                   href={instaUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="relative aspect-square rounded-2xl overflow-hidden group/item bg-base-800 block shadow-md"
+                  className="relative aspect-square rounded-2xl overflow-hidden group/item bg-base-800 block shadow-md border border-base-300/40"
                 >
                   <img src={img.src} alt="Instagram post" className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500 ease-out" />
                   <div className="absolute inset-0 bg-base-950/70 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4 text-white backdrop-blur-[2px]">
