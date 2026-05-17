@@ -1,12 +1,13 @@
 // src/components/layout/CartDrawer.jsx
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import useCartStore from '../../store/cartStore';
 
 const formatPrice = (p) => `৳${p.toLocaleString('en-BD')}`;
 
 export default function CartDrawer() {
+  const navigate = useNavigate();
   const { items, isOpen, closeCart, removeItem, updateQuantity, subtotal } = useCartStore();
   const total = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
 
@@ -146,7 +147,10 @@ export default function CartDrawer() {
                 <p className="text-xs text-surface-muted mb-4 text-center">
                   Shipping & taxes calculated at checkout
                 </p>
-                <button className="btn-primary w-full justify-between group">
+                <button
+                  onClick={() => { closeCart(); navigate('/checkout'); }}
+                  className="btn-primary w-full justify-between group"
+                >
                   <span>Checkout</span>
                   <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                 </button>

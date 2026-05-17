@@ -9,6 +9,7 @@ import ProtectedRoute from './components/admin/ProtectedRoute';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
 import ProductDetail from './pages/ProductDetail';
+import Checkout from './pages/Checkout';
 import Dashboard from './pages/admin/Dashboard';
 import AdminProducts from './pages/admin/Products';
 import AdminCategories from './pages/admin/Categories';
@@ -36,6 +37,7 @@ function FrontendLayout() {
               <Route path="/" element={<Home />} />
               <Route path="/shop" element={<Shop />} />
               <Route path="/product/:slug" element={<ProductDetail />} />
+              <Route path="/checkout" element={<Checkout />} />
             </Routes>
           </motion.div>
         </AnimatePresence>

@@ -133,3 +133,33 @@ export async function updateSiteSettings(key, value) {
   return data?.value || value;
 }
 
+// ==================== ORDERS ====================
+export async function createOrder(orderData) {
+  const { data, error } = await supabase
+    .from('orders')
+    .insert([orderData])
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function getOrders() {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function updateOrderStatus(id, status) {
+  const { data, error } = await supabase
+    .from('orders')
+    .update({ status })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
