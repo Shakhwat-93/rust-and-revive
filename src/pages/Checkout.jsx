@@ -517,7 +517,7 @@ export default function Checkout() {
                   <>
                     <CheckCircle size={18} />
                     Place Order · {formatPrice(total)}
-                    <ChevronRight size={16} className="ml-auto" />
+                    <ChevronRight size={16} />
                   </>
                 )}
               </motion.button>
