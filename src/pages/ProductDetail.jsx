@@ -3,10 +3,10 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ShoppingBag, Heart, Star, Check, ChevronDown,
-  Shield, Truck, RotateCcw, Zap, ArrowRight, X, Ruler, Loader2,
+  Shield, Truck, RotateCcw, Zap, ArrowRight, X, Ruler, Loader2, Layers
 } from 'lucide-react';
 import { getProductBySlug, getProducts } from '../lib/api';
-import { reviews } from '../data/products'; // Keep static reviews or fallback
+import { reviews } from '../data/products';
 import ProductCard from '../components/shop/ProductCard';
 import useCartStore from '../store/cartStore';
 
@@ -102,6 +102,15 @@ export default function ProductDetail() {
   };
 
   const images = Array.isArray(product.images) && product.images.length > 0 ? product.images : [product.image];
+
+  // ─── Extract Size Guide Multi-Column Data ───
+  const sizeGuide = product.size_guide;
+  const isAdvanced = sizeGuide?.columns && sizeGuide?.rows;
+  const materialText = sizeGuide?.material || "Cotton 100%";
+  const cols = isAdvanced ? sizeGuide.columns : ["Size", "Dimensions"];
+  const rows = isAdvanced
+    ? sizeGuide.rows
+    : Object.entries(sizeGuide || {}).filter(([k]) => k !== 'material').map(([sz, dim]) => ({ "Size": sz, "Dimensions": String(dim) }));
 
   return (
     <div className="min-h-screen pt-20 pb-20">
@@ -272,10 +281,10 @@ export default function ProductDetail() {
                   {product.size_guide && (
                     <button
                       onClick={() => setSizeGuideOpen(true)}
-                      className="text-xs font-bold text-brand hover:text-brand-400 transition-colors flex items-center gap-1"
+                      className="text-xs font-bold text-brand hover:text-brand-400 transition-colors flex items-center gap-1.5 glass-brand px-3 py-1.5 rounded-lg"
                     >
                       <Ruler size={14} />
-                      Size Guide
+                      <span>Size Chart & Fit Guide</span>
                     </button>
                   )}
                 </div>
@@ -502,7 +511,7 @@ export default function ProductDetail() {
         )}
       </div>
 
-      {/* Size Guide Modal */}
+      {/* ─── Elite Multi-Column Size Guide Modal ─── */}
       <AnimatePresence>
         {sizeGuideOpen && product.size_guide && (
           <>
@@ -510,7 +519,7 @@ export default function ProductDetail() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+              className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md"
               onClick={() => setSizeGuideOpen(false)}
             />
             <motion.div
@@ -519,39 +528,62 @@ export default function ProductDetail() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="fixed inset-0 z-50 flex items-center justify-center p-4"
             >
-              <div className="glass-dark rounded-3xl p-8 max-w-md w-full border border-base-300 shadow-2xl relative z-10">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-2 text-brand font-bold">
-                    <Ruler size={20} />
-                    <span>Size Measurements (Inches)</span>
+              <div className="glass-dark rounded-3xl p-6 sm:p-8 max-w-2xl w-full border border-base-300 shadow-2xl relative z-10">
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-base-300/80">
+                  <div className="flex items-center gap-3 text-brand font-bold">
+                    <div className="w-10 h-10 rounded-xl bg-brand/20 flex items-center justify-center">
+                      <Ruler size={20} className="text-brand" />
+                    </div>
+                    <div>
+                      <h3 className="text-h5 font-black text-surface-primary">Size Chart & Fit Guide</h3>
+                      <p className="text-xs text-surface-muted font-normal">All measurements are in inches</p>
+                    </div>
                   </div>
                   <button onClick={() => setSizeGuideOpen(false)} className="btn-icon">
                     <X size={18} />
                   </button>
                 </div>
-                <div className="rounded-2xl border border-base-300 overflow-hidden bg-base-950">
-                  <table className="w-full text-left border-collapse">
+
+                {/* Material Info */}
+                <div className="mb-6 p-4 rounded-2xl bg-base-900/60 border border-base-300/80 flex items-center gap-3">
+                  <Layers size={18} className="text-brand flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-surface-secondary">Material / Composition</p>
+                    <p className="text-sm font-bold text-surface-primary">{materialText}</p>
+                  </div>
+                </div>
+
+                {/* Table */}
+                <div className="rounded-2xl border border-base-300 overflow-hidden bg-base-950 shadow-inner overflow-x-auto">
+                  <table className="w-full text-center border-collapse font-mono text-sm">
                     <thead>
-                      <tr className="border-b border-base-300 bg-base-900/50">
-                        <th className="py-3 px-4 text-xs font-bold text-surface-secondary uppercase tracking-wider">Size</th>
-                        <th className="py-3 px-4 text-xs font-bold text-surface-secondary uppercase tracking-wider">Dimensions</th>
+                      <tr className="border-b border-base-300 bg-base-900/80">
+                        {cols.map((col, idx) => (
+                          <th key={idx} className="py-3.5 px-4 text-xs font-bold text-surface-secondary uppercase tracking-wider border-r border-base-300/50 last:border-0">
+                            {col}
+                          </th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-base-300/50">
-                      {Object.entries(product.size_guide).map(([sz, meas]) => (
-                        <tr key={sz} className="hover:bg-base-900/30 transition-colors">
-                          <td className="py-3 px-4 font-mono font-bold text-brand">{sz}</td>
-                          <td className="py-3 px-4 text-xs text-surface-primary">{meas}</td>
+                      {rows.map((row, rIdx) => (
+                        <tr key={rIdx} className="hover:bg-base-900/40 transition-colors group">
+                          {cols.map((col, cIdx) => (
+                            <td key={cIdx} className={`py-3.5 px-4 border-r border-base-300/50 last:border-0 ${cIdx === 0 ? 'font-bold text-brand bg-brand/5 group-hover:bg-brand/10' : 'text-surface-primary'}`}>
+                              {row[col] || '—'}
+                            </td>
+                          ))}
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
+
                 <button
                   onClick={() => setSizeGuideOpen(false)}
-                  className="w-full py-3.5 rounded-xl bg-brand hover:bg-brand-400 text-white font-bold text-small mt-6 shadow-glow transition-all duration-200"
+                  className="w-full py-4 rounded-xl bg-brand hover:bg-brand-400 text-white font-bold text-small mt-8 shadow-glow transition-all duration-200"
                 >
-                  Got It
+                  Close Size Chart
                 </button>
               </div>
             </motion.div>
@@ -578,7 +610,7 @@ export default function ProductDetail() {
             }`}
           >
             {product.in_stock === false ? (
-              'Stock Out'
+               'Stock Out'
             ) : added ? (
               <>
                 <Check size={16} /> Added!
