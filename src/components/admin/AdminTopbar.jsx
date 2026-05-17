@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Bell, Search, Zap, Menu } from 'lucide-react';
+import { Bell, Zap, Menu } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
 const pageTitles = {
@@ -8,7 +8,7 @@ const pageTitles = {
   '/admin/categories': 'Categories',
   '/admin/orders': 'Orders',
   '/admin/customers': 'Customers',
-  '/admin/website/pages': 'Website Pages',
+  '/admin/website/pages': 'CMS Pages',
 };
 
 export default function AdminTopbar({ onMenuClick }) {
@@ -20,37 +20,29 @@ export default function AdminTopbar({ onMenuClick }) {
       initial={{ y: -60, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="flex items-center justify-between px-6 py-4 border-b border-base-300 glass-dark"
+      className="flex items-center justify-between px-4 py-3 border-b border-base-300 bg-base-950/80 backdrop-blur-xl sticky top-0 z-20"
     >
-      {/* Mobile menu button */}
-      <button onClick={onMenuClick} className="btn-icon lg:hidden mr-2">
-        <Menu size={18} />
-      </button>
-
-      {/* Page title */}
-      <h1 className="font-bold text-h4 flex-1">{title}</h1>
+      {/* Left: hamburger + title */}
+      <div className="flex items-center gap-3 min-w-0">
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-xl bg-base-800 border border-base-300 text-surface-secondary hover:text-white transition-colors"
+        >
+          <Menu size={18} />
+        </button>
+        <h1 className="font-black text-base text-surface-primary truncate">{title}</h1>
+      </div>
 
       {/* Right actions */}
-      <div className="flex items-center gap-2">
-        {/* Search */}
-        <div className="relative hidden sm:block">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-muted" />
-          <input
-            type="text"
-            placeholder="Search..."
-            className="input pl-9 py-2 w-52 text-xs"
-            id="admin-search"
-          />
-        </div>
-
+      <div className="flex items-center gap-2 flex-shrink-0">
         {/* Notifications */}
-        <button className="relative btn-icon">
-          <Bell size={18} />
-          <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-brand" />
+        <button className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-base-800 border border-base-300 text-surface-secondary hover:text-white transition-colors">
+          <Bell size={16} />
+          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-brand shadow-[0_0_6px_rgba(255,107,0,0.8)]" />
         </button>
 
         {/* Avatar */}
-        <div className="w-9 h-9 rounded-full bg-brand/20 border border-brand/30 flex items-center justify-center">
+        <div className="w-9 h-9 rounded-xl bg-brand/20 border border-brand/30 flex items-center justify-center flex-shrink-0">
           <Zap size={14} className="text-brand" />
         </div>
       </div>

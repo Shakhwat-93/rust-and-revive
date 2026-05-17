@@ -135,7 +135,7 @@ export default function WebsitePages() {
   const currentInstaImages = homeData.instagramImages || defaultHome.instagramImages;
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6 pb-24">
+    <div className="space-y-6 max-w-4xl mx-auto pb-24">
       {/* Header & Actions */}
       <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-base-300">
         <div>

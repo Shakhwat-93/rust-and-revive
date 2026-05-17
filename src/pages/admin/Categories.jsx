@@ -94,112 +94,140 @@ export default function AdminCategories() {
   );
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4 max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-bold text-h3">Categories</h2>
-          <p className="text-surface-muted text-small mt-1">{categories.length} total categories</p>
+          <h2 className="font-black text-lg">Categories</h2>
+          <p className="text-surface-muted text-xs mt-0.5">{categories.length} total categories</p>
         </div>
-        <button onClick={handleOpenAdd} className="btn-primary" id="add-category-btn">
-          <Plus size={16} />
-          Add Category
+        <button onClick={handleOpenAdd} className="btn-primary text-xs py-2 px-3 h-auto" id="add-category-btn">
+          <Plus size={14} />
+          <span className="hidden xs:inline">Add</span> Category
         </button>
       </div>
 
       {/* Search */}
-      <div className="relative max-w-sm">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-muted" />
+      <div className="relative">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-muted" />
         <input
           type="text"
           placeholder="Search categories..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="input pl-9"
+          className="input pl-8 text-xs h-9 w-full"
         />
       </div>
 
       {/* Table / Loading */}
       {loading ? (
-        <div className="card py-24 flex flex-col items-center justify-center gap-3">
-          <Loader2 size={32} className="text-brand animate-spin" />
-          <p className="text-surface-muted text-small">Loading categories...</p>
+        <div className="card py-16 flex flex-col items-center justify-center gap-3">
+          <Loader2 size={28} className="text-brand animate-spin" />
+          <p className="text-surface-muted text-xs">Loading categories...</p>
         </div>
       ) : (
-        <motion.div className="card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Category</th>
-                  <th>Slug</th>
-                  <th>Description</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <AnimatePresence>
-                  {filtered.map((cat, i) => (
-                    <motion.tr
-                      key={cat.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ delay: i * 0.04 }}
-                    >
-                      <td>
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-base-500 flex-shrink-0 border border-base-300 flex items-center justify-center font-bold text-surface-muted">
-                            {cat.image_url ? (
-                              <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover" />
-                            ) : (
-                              cat.name[0]
-                            )}
-                          </div>
-                          <p className="font-semibold text-surface-primary">{cat.name}</p>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="font-mono text-xs px-2.5 py-1 rounded-md bg-base-500 text-brand font-semibold">
-                          {cat.slug}
-                        </span>
-                      </td>
-                      <td className="max-w-md">
-                        <p className="text-xs text-surface-muted line-clamp-2">
-                          {cat.description || 'No description provided.'}
-                        </p>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleOpenEdit(cat)}
-                            className="btn-icon w-8 h-8 text-surface-muted hover:text-brand"
-                            title="Edit"
-                          >
-                            <Edit2 size={14} />
-                          </button>
-                          <button
-                            onClick={() => setDeleteId(cat.id)}
-                            className="btn-icon w-8 h-8 text-surface-muted hover:text-red-400"
-                            title="Delete"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </AnimatePresence>
-              </tbody>
-            </table>
-            {filtered.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <FolderKanban size={32} className="text-surface-muted" />
-                <p className="text-surface-muted text-small">No categories found</p>
+        <>
+          {/* Mobile: card list */}
+          <div className="sm:hidden space-y-2">
+            {filtered.length === 0 ? (
+              <div className="card py-12 flex flex-col items-center justify-center gap-2">
+                <FolderKanban size={24} className="text-surface-muted" />
+                <p className="text-surface-muted text-xs">No categories found</p>
               </div>
+            ) : (
+              <AnimatePresence>
+                {filtered.map((cat, i) => (
+                  <motion.div
+                    key={cat.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                    className="card p-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-10 h-10 rounded-xl overflow-hidden bg-base-500 flex-shrink-0 border border-base-300 flex items-center justify-center font-black text-sm text-surface-muted">
+                          {cat.image_url ? (
+                            <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover" />
+                          ) : cat.name[0]}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-xs text-surface-primary">{cat.name}</p>
+                          <span className="font-mono text-[10px] text-brand">{cat.slug}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button onClick={() => handleOpenEdit(cat)} className="w-8 h-8 rounded-lg flex items-center justify-center text-surface-muted hover:text-brand hover:bg-brand/10 transition-colors">
+                          <Edit2 size={13} />
+                        </button>
+                        <button onClick={() => setDeleteId(cat.id)} className="w-8 h-8 rounded-lg flex items-center justify-center text-surface-muted hover:text-red-400 hover:bg-red-500/10 transition-colors">
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                    {cat.description && (
+                      <p className="text-[10px] text-surface-muted mt-2 line-clamp-2">{cat.description}</p>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             )}
           </div>
-        </motion.div>
+
+          {/* Desktop: table */}
+          <div className="hidden sm:block card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Category</th>
+                    <th>Slug</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <AnimatePresence>
+                    {filtered.map((cat, i) => (
+                      <motion.tr
+                        key={cat.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                      >
+                        <td>
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-base-500 flex-shrink-0 border border-base-300 flex items-center justify-center font-black text-surface-muted">
+                              {cat.image_url ? <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover" /> : cat.name[0]}
+                            </div>
+                            <p className="font-bold text-xs text-surface-primary">{cat.name}</p>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="font-mono text-[10px] px-2 py-1 rounded-md bg-base-500 text-brand font-bold">{cat.slug}</span>
+                        </td>
+                        <td className="max-w-xs">
+                          <p className="text-xs text-surface-muted line-clamp-2">{cat.description || '—'}</p>
+                        </td>
+                        <td>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => handleOpenEdit(cat)} className="btn-icon w-8 h-8 text-surface-muted hover:text-brand" title="Edit"><Edit2 size={13} /></button>
+                            <button onClick={() => setDeleteId(cat.id)} className="btn-icon w-8 h-8 text-surface-muted hover:text-red-400" title="Delete"><Trash2 size={13} /></button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </AnimatePresence>
+                  {filtered.length === 0 && (
+                    <tr><td colSpan={4} className="text-center py-10 text-surface-muted text-xs">No categories found</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Delete Confirm Modal */}
@@ -214,26 +242,26 @@ export default function AdminCategories() {
               onClick={() => setDeleteId(null)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-x-3 bottom-4 top-auto z-50 sm:inset-0 sm:flex sm:items-center sm:justify-center sm:p-4"
             >
-              <div className="glass-dark rounded-2xl p-6 max-w-sm w-full border border-base-300">
-                <div className="w-12 h-12 rounded-full bg-red-500/15 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
-                  <Trash2 size={20} className="text-red-400" />
+              <div className="glass-dark rounded-2xl p-5 w-full max-w-sm mx-auto border border-base-300 shadow-2xl">
+                <div className="w-10 h-10 rounded-full bg-red-500/15 border border-red-500/20 flex items-center justify-center mx-auto mb-3">
+                  <Trash2 size={18} className="text-red-400" />
                 </div>
-                <h3 className="font-bold text-h4 text-center mb-2">Delete Category?</h3>
-                <p className="text-surface-muted text-small text-center mb-6">
-                  This action cannot be undone. Category will be permanently removed. Note: ensure no products reference this slug before deleting.
+                <h3 className="font-black text-base text-center mb-1.5">Delete Category?</h3>
+                <p className="text-surface-muted text-xs text-center mb-5">
+                  This cannot be undone. Ensure no products reference this slug.
                 </p>
-                <div className="flex gap-3">
-                  <button onClick={() => setDeleteId(null)} className="btn-secondary flex-1">
+                <div className="flex gap-2">
+                  <button onClick={() => setDeleteId(null)} className="btn-secondary flex-1 text-xs py-2.5">
                     Cancel
                   </button>
                   <button
                     onClick={() => handleDelete(deleteId)}
-                    className="flex-1 py-3 rounded-lg bg-red-500 text-white font-semibold text-small hover:bg-red-600 transition-colors"
+                    className="flex-1 py-2.5 rounded-xl bg-red-500 text-white font-bold text-xs hover:bg-red-600 transition-colors"
                   >
                     Delete
                   </button>
@@ -256,16 +284,18 @@ export default function AdminCategories() {
               onClick={() => setModalOpen(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              className="fixed inset-x-0 bottom-0 sm:inset-0 z-50 sm:flex sm:items-center sm:justify-center sm:p-4"
             >
-              <div className="glass-dark rounded-2xl p-6 max-w-lg w-full border border-base-300 max-h-[90vh] overflow-y-auto hide-scrollbar">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-bold text-h4">{editCategory ? 'Edit Category' : 'Add New Category'}</h3>
-                  <button onClick={() => setModalOpen(false)} className="btn-icon">
-                    <X size={18} />
+              <div className="glass-dark rounded-t-3xl sm:rounded-2xl p-5 w-full sm:max-w-md border border-base-300 max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl">
+                {/* Drag handle for mobile */}
+                <div className="w-10 h-1 rounded-full bg-base-300 mx-auto mb-4 sm:hidden" />
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-black text-base">{editCategory ? 'Edit Category' : 'Add Category'}</h3>
+                  <button onClick={() => setModalOpen(false)} className="w-8 h-8 rounded-xl bg-base-800 border border-base-300 flex items-center justify-center text-surface-secondary hover:text-white transition-colors">
+                    <X size={16} />
                   </button>
                 </div>
 
@@ -276,11 +306,9 @@ export default function AdminCategories() {
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-3">
                   <div>
-                    <label className="block text-xs font-semibold text-surface-secondary mb-1.5">
-                      Category Name *
-                    </label>
+                    <label className="block text-[10px] font-bold text-surface-secondary mb-1 uppercase tracking-wider">Category Name *</label>
                     <input
                       required
                       type="text"
@@ -294,61 +322,55 @@ export default function AdminCategories() {
                           slug: editCategory ? prev.slug : name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
                         }));
                       }}
-                      className="input"
+                      className="input text-xs h-10"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-surface-secondary mb-1.5">
-                      Slug * (Unique identifier)
-                    </label>
+                    <label className="block text-[10px] font-bold text-surface-secondary mb-1 uppercase tracking-wider">Slug * (Unique ID)</label>
                     <input
                       required
                       type="text"
                       placeholder="e.g. hoodies"
                       value={formData.slug}
                       onChange={(e) => setFormData((prev) => ({ ...prev, slug: e.target.value }))}
-                      className="input font-mono"
+                      className="input text-xs h-10 font-mono text-brand"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-surface-secondary mb-1.5">
-                      Image URL (optional)
-                    </label>
+                    <label className="block text-[10px] font-bold text-surface-secondary mb-1 uppercase tracking-wider">Image URL (optional)</label>
                     <input
                       type="text"
-                      placeholder="e.g. /images/hoodie-rust.webp or https://..."
+                      placeholder="/images/hoodie-rust.webp"
                       value={formData.image_url}
                       onChange={(e) => setFormData((prev) => ({ ...prev, image_url: e.target.value }))}
-                      className="input"
+                      className="input text-xs h-10 font-mono"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-surface-secondary mb-1.5">
-                      Description
-                    </label>
+                    <label className="block text-[10px] font-bold text-surface-secondary mb-1 uppercase tracking-wider">Description</label>
                     <textarea
-                      rows={3}
+                      rows={2}
                       placeholder="Category description..."
                       value={formData.description}
                       onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                      className="input resize-none"
+                      className="input resize-none text-xs py-2.5"
                     />
                   </div>
 
-                  <div className="flex gap-3 mt-6">
-                    <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1">
+                  <div className="flex gap-2 pt-2">
+                    <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1 text-xs py-2.5">
                       Cancel
                     </button>
-                    <button type="submit" disabled={formLoading} className="btn-primary flex-1 flex items-center justify-center gap-2">
+                    <button type="submit" disabled={formLoading} className="btn-primary flex-1 text-xs py-2.5 flex items-center justify-center gap-1.5">
                       {formLoading ? (
-                        <Loader2 size={16} className="animate-spin" />
+                        <Loader2 size={14} className="animate-spin" />
                       ) : (
                         <>
-                          <Check size={16} />
-                          {editCategory ? 'Update Category' : 'Save Category'}
+                          <Check size={14} />
+                          {editCategory ? 'Update' : 'Save Category'}
                         </>
                       )}
                     </button>

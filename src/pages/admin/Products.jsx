@@ -256,162 +256,135 @@ export default function AdminProducts() {
   );
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-bold text-h3">Products</h2>
-          <p className="text-surface-muted text-small mt-1">{products.length} total products</p>
+          <h2 className="font-black text-lg">Products</h2>
+          <p className="text-surface-muted text-xs mt-0.5">{products.length} total products</p>
         </div>
-        <button onClick={handleOpenAdd} className="btn-primary" id="add-product-btn">
-          <Plus size={16} />
-          Add Product
+        <button onClick={handleOpenAdd} className="btn-primary text-xs py-2 px-3 h-auto" id="add-product-btn">
+          <Plus size={14} />
+          <span className="hidden xs:inline">Add</span> Product
         </button>
       </div>
 
       {/* Search */}
-      <div className="relative max-w-sm">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-muted" />
+      <div className="relative">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-muted" />
         <input
           type="text"
-          placeholder="Search products by name, slug or category..."
+          placeholder="Search products..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="input pl-9"
+          className="input pl-8 text-xs h-9 w-full"
           id="products-search"
         />
       </div>
 
-      {/* Product Table */}
+      {/* Product List */}
       {loading ? (
-        <div className="card py-24 flex flex-col items-center justify-center gap-3">
-          <Loader2 size={32} className="text-brand animate-spin" />
-          <p className="text-surface-muted text-small">Loading products from Supabase...</p>
+        <div className="card py-16 flex flex-col items-center justify-center gap-3">
+          <Loader2 size={28} className="text-brand animate-spin" />
+          <p className="text-surface-muted text-xs">Loading products...</p>
         </div>
       ) : (
-        <motion.div className="card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>Category</th>
-                  <th>Price</th>
-                  <th>Stock Status</th>
-                  <th>Rating</th>
-                  <th>Badge</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <AnimatePresence>
-                  {filtered.map((product, i) => (
-                    <motion.tr
-                      key={product.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ delay: i * 0.04 }}
-                    >
-                      <td>
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-base-500 flex-shrink-0 border border-base-300">
-                            <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-surface-primary">{product.name}</p>
-                            <p className="text-[10px] text-surface-muted font-mono">{product.slug}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="capitalize font-medium">{product.category}</td>
-                      <td>
-                        <div>
-                          <p className="font-semibold text-surface-primary">{formatPrice(product.price)}</p>
-                          {product.original_price && (
-                            <p className="text-[10px] text-surface-muted line-through">{formatPrice(product.original_price)}</p>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <button
-                          onClick={() => toggleStock(product)}
-                          className={`px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-                            product.in_stock
-                              ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25'
-                              : 'bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25'
-                          }`}
-                          title="Click to toggle stock status"
-                        >
-                          <span className={`w-1.5 h-1.5 rounded-full ${product.in_stock ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
-                          {product.in_stock ? 'In Stock' : 'Stock Out'}
-                        </button>
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-1">
-                          <span className="text-brand text-xs">★</span>
-                          <span className="text-xs font-medium">{product.rating || '5.0'}</span>
-                          <span className="text-[10px] text-surface-muted">({product.reviews_count || 0})</span>
-                        </div>
-                      </td>
-                      <td>
-                        {product.badge ? (
-                          <span
-                            className={`badge text-[10px] font-bold tracking-wider uppercase ${
-                              product.badge === 'LIMITED'
-                                ? 'badge-brand'
-                                : product.badge === 'NEW DROP'
-                                ? 'badge-success'
-                                : product.badge === 'SALE'
-                                ? 'badge-danger'
-                                : 'badge'
-                            }`}
-                          >
-                            {product.badge}
-                          </span>
-                        ) : (
-                          <span className="text-surface-muted text-xs">—</span>
-                        )}
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-1">
-                          <Link
-                            to={`/product/${product.slug}`}
-                            target="_blank"
-                            className="btn-icon w-8 h-8 text-surface-muted hover:text-blue-400"
-                            title="View Live Page"
-                          >
-                            <Eye size={14} />
-                          </Link>
-                          <button
-                            onClick={() => handleOpenEdit(product)}
-                            className="btn-icon w-8 h-8 text-surface-muted hover:text-brand"
-                            title="Edit"
-                          >
-                            <Edit2 size={14} />
-                          </button>
-                          <button
-                            onClick={() => setDeleteId(product.id)}
-                            className="btn-icon w-8 h-8 text-surface-muted hover:text-red-400"
-                            title="Delete"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </AnimatePresence>
-              </tbody>
-            </table>
-            {filtered.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <Package size={32} className="text-surface-muted" />
-                <p className="text-surface-muted text-small">No products found</p>
+        <>
+          {/* Mobile: card list */}
+          <div className="sm:hidden space-y-2">
+            {filtered.length === 0 ? (
+              <div className="card py-12 flex flex-col items-center gap-2">
+                <Package size={24} className="text-surface-muted" />
+                <p className="text-surface-muted text-xs">No products found</p>
               </div>
+            ) : (
+              <AnimatePresence>
+                {filtered.map((product, i) => (
+                  <motion.div key={product.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ delay: i * 0.04 }} className="card p-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-12 h-12 rounded-xl overflow-hidden bg-base-500 flex-shrink-0 border border-base-300">
+                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-xs text-surface-primary line-clamp-1">{product.name}</p>
+                        <p className="text-[10px] text-surface-muted font-mono">{product.slug}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs font-black text-brand">{formatPrice(product.price)}</span>
+                          <button onClick={() => toggleStock(product)} className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-1 ${product.in_stock ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
+                            <span className={`w-1 h-1 rounded-full ${product.in_stock ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                            {product.in_stock ? 'In Stock' : 'Out'}
+                          </button>
+                          {product.badge && <span className="badge badge-brand text-[9px]">{product.badge}</span>}
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1 flex-shrink-0">
+                        <button onClick={() => handleOpenEdit(product)} className="w-8 h-8 rounded-lg flex items-center justify-center text-surface-muted hover:text-brand hover:bg-brand/10 transition-colors"><Edit2 size={13} /></button>
+                        <button onClick={() => setDeleteId(product.id)} className="w-8 h-8 rounded-lg flex items-center justify-center text-surface-muted hover:text-red-400 hover:bg-red-500/10 transition-colors"><Trash2 size={13} /></button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             )}
           </div>
-        </motion.div>
+
+          {/* Desktop: table */}
+          <div className="hidden sm:block card overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Badge</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <AnimatePresence>
+                    {filtered.map((product, i) => (
+                      <motion.tr key={product.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, height: 0 }} transition={{ delay: i * 0.04 }}>
+                        <td>
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-base-500 flex-shrink-0 border border-base-300">
+                              <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-xs text-surface-primary">{product.name}</p>
+                              <p className="text-[10px] text-surface-muted font-mono">{product.slug}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="capitalize text-xs">{product.category}</td>
+                        <td>
+                          <p className="font-black text-xs text-surface-primary">{formatPrice(product.price)}</p>
+                          {product.original_price && <p className="text-[10px] text-surface-muted line-through">{formatPrice(product.original_price)}</p>}
+                        </td>
+                        <td>
+                          <button onClick={() => toggleStock(product)} className={`px-2 py-1 rounded-full text-[10px] font-bold flex items-center gap-1 transition-colors ${product.in_stock ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/15 text-red-400 border border-red-500/30'}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${product.in_stock ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
+                            {product.in_stock ? 'In Stock' : 'Out'}
+                          </button>
+                        </td>
+                        <td>{product.badge ? <span className="badge badge-brand text-[10px]">{product.badge}</span> : <span className="text-surface-muted text-xs">—</span>}</td>
+                        <td>
+                          <div className="flex items-center gap-1">
+                            <Link to={`/product/${product.slug}`} target="_blank" className="btn-icon w-7 h-7 text-surface-muted hover:text-blue-400" title="View"><Eye size={13} /></Link>
+                            <button onClick={() => handleOpenEdit(product)} className="btn-icon w-7 h-7 text-surface-muted hover:text-brand" title="Edit"><Edit2 size={13} /></button>
+                            <button onClick={() => setDeleteId(product.id)} className="btn-icon w-7 h-7 text-surface-muted hover:text-red-400" title="Delete"><Trash2 size={13} /></button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </AnimatePresence>
+                  {filtered.length === 0 && <tr><td colSpan={6} className="text-center py-10 text-surface-muted text-xs">No products found</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Delete Confirm Modal */}
@@ -464,20 +437,22 @@ export default function AdminProducts() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+              className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
               onClick={() => setModalOpen(false)}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 40 }}
+              className="fixed inset-x-0 bottom-0 sm:inset-0 z-50 sm:flex sm:items-center sm:justify-center sm:p-4"
             >
-              <div className="glass-dark rounded-3xl p-8 max-w-4xl w-full border border-base-300 max-h-[90vh] overflow-y-auto hide-scrollbar shadow-2xl">
-                <div className="flex items-center justify-between mb-6 pb-4 border-b border-base-300">
-                  <h3 className="font-black text-h4 text-surface-primary">{editProduct ? 'Edit Product' : 'Add New Product'}</h3>
-                  <button onClick={() => setModalOpen(false)} className="btn-icon">
-                    <X size={18} />
+              <div className="glass-dark rounded-t-3xl sm:rounded-2xl p-4 sm:p-6 w-full sm:max-w-3xl border border-base-300 max-h-[92vh] overflow-y-auto hide-scrollbar shadow-2xl">
+                {/* Mobile drag handle */}
+                <div className="w-10 h-1 rounded-full bg-base-300 mx-auto mb-3 sm:hidden" />
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-base-300">
+                  <h3 className="font-black text-base text-surface-primary">{editProduct ? 'Edit Product' : 'Add Product'}</h3>
+                  <button onClick={() => setModalOpen(false)} className="w-8 h-8 rounded-xl bg-base-800 border border-base-300 flex items-center justify-center text-surface-secondary hover:text-white transition-colors">
+                    <X size={15} />
                   </button>
                 </div>
 
@@ -488,8 +463,8 @@ export default function AdminProducts() {
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-surface-secondary mb-1.5 uppercase tracking-wider">
                         Product Name *
@@ -526,7 +501,7 @@ export default function AdminProducts() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-surface-secondary mb-1.5 uppercase tracking-wider">
                         Category *
@@ -816,17 +791,17 @@ export default function AdminProducts() {
                     </label>
                   </div>
 
-                  <div className="flex gap-4 mt-8 pt-6 border-t border-base-300">
-                    <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1 py-3.5 font-bold">
+                  <div className="flex gap-3 pt-4 border-t border-base-300">
+                    <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary flex-1 py-3 text-xs font-bold">
                       Cancel
                     </button>
-                    <button type="submit" disabled={formLoading} className="btn-primary flex-1 py-3.5 font-bold flex items-center justify-center gap-2 shadow-glow hover:shadow-glow-lg">
+                    <button type="submit" disabled={formLoading} className="btn-primary flex-1 py-3 text-xs font-bold flex items-center justify-center gap-2 shadow-glow">
                       {formLoading ? (
-                        <Loader2 size={18} className="animate-spin" />
+                        <Loader2 size={15} className="animate-spin" />
                       ) : (
                         <>
-                          <Check size={18} />
-                          {editProduct ? 'Update Product' : 'Save Product'}
+                          <Check size={15} />
+                          {editProduct ? 'Update' : 'Save Product'}
                         </>
                       )}
                     </button>
