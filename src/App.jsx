@@ -51,11 +51,11 @@ function AdminLayout() {
   const location = useLocation();
 
   return (
-    <div className="flex min-h-screen bg-base-900">
-      <AdminSidebar />
-      <div className="flex-1 flex flex-col min-w-0">
+    <div className="flex min-h-screen bg-base-900 relative overflow-x-hidden">
+      <AdminSidebar mobileOpen={mobileSidebar} onClose={() => setMobileSidebar(false)} />
+      <div className="flex-1 flex flex-col min-w-0 w-full">
         <AdminTopbar onMenuClick={() => setMobileSidebar(!mobileSidebar)} />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
