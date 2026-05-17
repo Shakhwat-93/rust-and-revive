@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   User, Phone, MapPin, MessageSquare, ShoppingBag,
   CheckCircle, Loader2, ChevronRight, Tag, Truck, CreditCard,
-  ArrowLeft, Zap,
+  ArrowLeft, Zap, Package,
 } from 'lucide-react';
 import useCartStore from '../store/cartStore';
 import { supabase } from '../lib/supabase';
@@ -107,65 +107,149 @@ function Field({ label, icon: Icon, required, children, hint }) {
 }
 
 /* ─── Success Screen ────────────────────────────────────────────────────── */
-function SuccessScreen({ orderNumber, onContinue }) {
+function SuccessScreen({ orderNumber, items, total, shipping, onContinue }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-      className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden"
-    >
-      {/* Background glows */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-96 h-96 bg-brand/8 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-emerald-500/8 rounded-full blur-[100px] pointer-events-none" />
+    <div className="min-h-screen relative overflow-hidden flex items-center justify-center py-12 px-4">
+      {/* Background atmosphere */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-brand/6 rounded-full blur-[130px]" />
+        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-orange-900/8 rounded-full blur-[120px]" />
+        <div className="absolute top-1/2 left-0 w-[300px] h-[300px] bg-emerald-900/6 rounded-full blur-[100px]" />
+      </div>
 
-      <div className="text-center max-w-md w-full">
-        {/* Animated checkmark */}
+      <div className="relative z-10 w-full max-w-xl mx-auto">
         <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.2, type: 'spring', stiffness: 200, damping: 15 }}
-          className="w-24 h-24 rounded-full bg-emerald-500/15 border-2 border-emerald-500/30 flex items-center justify-center mx-auto mb-6"
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+          className="space-y-6"
         >
+          {/* Icon + heading */}
+          <div className="text-center space-y-4">
+            <motion.div
+              initial={{ scale: 0, rotate: -20 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ delay: 0.2, type: 'spring', stiffness: 180, damping: 14 }}
+              className="w-20 h-20 mx-auto rounded-3xl bg-emerald-500/12 border border-emerald-500/25 flex items-center justify-center"
+            >
+              <CheckCircle size={40} className="text-emerald-400" />
+            </motion.div>
+
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
+              <p className="text-[10px] font-black tracking-[0.25em] uppercase text-brand mb-2">Order Confirmed</p>
+              <h1 className="font-black text-4xl sm:text-5xl text-surface-primary leading-none">
+                Thank<br />you! 🔥
+              </h1>
+              <p className="text-surface-muted text-sm mt-3">
+                Your order has been placed successfully.
+              </p>
+            </motion.div>
+          </div>
+
+          {/* Order number card */}
           <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.4, type: 'spring', stiffness: 250 }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 }}
+            className="card p-5 border-brand/20"
           >
-            <CheckCircle size={48} className="text-emerald-400" />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] uppercase tracking-widest text-surface-muted font-bold mb-1">Order Number</p>
+                <p className="font-mono font-black text-2xl text-brand tracking-wider">{orderNumber}</p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center">
+                <Zap size={20} className="text-brand" />
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-base-300/60 flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-surface-muted">
+                <Truck size={13} />
+                <span className="text-xs">Cash on Delivery</span>
+              </div>
+              <span className="font-black text-lg text-surface-primary">
+                {formatPrice(total)}
+              </span>
+            </div>
+          </motion.div>
+
+          {/* Items recap */}
+          {items && items.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.52 }}
+              className="card p-4 space-y-3"
+            >
+              <p className="text-[10px] uppercase tracking-widest text-surface-muted font-black">What you ordered</p>
+              {items.map((item) => (
+                <div key={item.key} className="flex items-center gap-3">
+                  <div className="w-11 h-12 rounded-xl overflow-hidden bg-base-500 flex-shrink-0 border border-base-300">
+                    <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-surface-primary line-clamp-1">{item.product.name}</p>
+                    <p className="text-[10px] text-surface-muted">Size {item.size} · ×{item.quantity}</p>
+                  </div>
+                  <span className="text-xs font-black text-surface-primary flex-shrink-0">
+                    {formatPrice(item.product.price * item.quantity)}
+                  </span>
+                </div>
+              ))}
+            </motion.div>
+          )}
+
+          {/* Next steps */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.58 }}
+            className="card p-5"
+          >
+            <p className="text-[10px] uppercase tracking-widest text-surface-muted font-black mb-4">What happens next</p>
+            <div className="space-y-4 relative">
+              {/* Vertical line */}
+              <div className="absolute left-[14px] top-3 bottom-3 w-px bg-base-300" />
+
+              {[
+                { icon: Phone,       text: 'We\'ll call to confirm your order soon.', color: 'bg-brand/20 text-brand border-brand/30' },
+                { icon: Package,     text: 'Your order gets packed & dispatched.',   color: 'bg-blue-500/15 text-blue-400 border-blue-500/25' },
+                { icon: Truck,       text: 'Delivered in 2–4 business days.',        color: 'bg-amber-500/15 text-amber-400 border-amber-500/25' },
+                { icon: CheckCircle, text: 'Pay cash when your order arrives.',      color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25' },
+              ].map(({ icon: Icon, text, color }, i) => (
+                <div key={i} className="flex items-center gap-3 relative">
+                  <div className={`w-7 h-7 rounded-full border flex items-center justify-center flex-shrink-0 z-10 ${color}`}>
+                    <Icon size={13} />
+                  </div>
+                  <p className="text-xs text-surface-secondary">{text}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* CTA */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.64 }}
+            className="space-y-3"
+          >
+            <motion.button
+              onClick={onContinue}
+              whileHover={{ scale: 1.015, y: -2 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full py-4 rounded-xl bg-brand hover:bg-brand-400 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-300 shadow-glow"
+            >
+              Continue Shopping
+              <ChevronRight size={16} />
+            </motion.button>
+            <p className="text-center text-[10px] text-surface-muted">
+              Screenshot your order number <span className="text-brand font-mono font-bold">{orderNumber}</span> for reference.
+            </p>
           </motion.div>
         </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-          <span className="text-xs font-black tracking-widest uppercase text-brand">Order Confirmed</span>
-          <h2 className="font-black text-3xl text-surface-primary mt-2 mb-1">Thank you! 🔥</h2>
-          <p className="text-surface-muted text-sm">Your order has been placed successfully.</p>
-
-          <div className="mt-6 p-4 rounded-2xl bg-base-600 border border-base-300 text-left">
-            <p className="text-[10px] uppercase tracking-widest text-surface-muted mb-1">Order Number</p>
-            <p className="font-mono font-black text-xl text-brand">{orderNumber}</p>
-            <p className="text-xs text-surface-muted mt-2">
-              We'll confirm your order via phone shortly. Please keep your phone nearby.
-            </p>
-          </div>
-
-          <div className="mt-4 p-3 rounded-xl bg-amber-500/8 border border-amber-500/20">
-            <p className="text-[10px] text-amber-300">
-              📦 Estimated delivery: <strong>2–4 business days</strong> · Cash on Delivery
-            </p>
-          </div>
-
-          <motion.button
-            onClick={onContinue}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="btn-primary w-full mt-8 justify-center"
-          >
-            Continue Shopping
-          </motion.button>
-        </motion.div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -244,7 +328,7 @@ export default function Checkout() {
   };
 
   if (success) {
-    return <SuccessScreen orderNumber={orderNumber} onContinue={() => navigate('/')} />;
+    return <SuccessScreen orderNumber={orderNumber} items={items} total={total} shipping={shipping} onContinue={() => navigate('/')} />;
   }
 
   if (items.length === 0) {
