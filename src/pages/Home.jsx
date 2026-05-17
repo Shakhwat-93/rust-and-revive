@@ -9,11 +9,25 @@ import ProductCard from '../components/shop/ProductCard';
 const formatPrice = (p) => `৳${Number(p).toLocaleString('en-BD')}`;
 
 const defaultHome = {
+  heroBgImage: "/images/hero-banner.webp",
+  heroBadge: "New Season Drop",
+  heroSubBadge: "SS 2026",
   heroHeading: "WEAR THE STREETS.\nOWN THE MOMENT.",
   heroSubtext: "Premium streetwear for Bangladesh's next generation. Built to last. Priced for the culture.",
   heroButtonText: "Shop Now",
-  heroBadge: "New Season Drop",
-  heroSubBadge: "SS 2026",
+
+  collectionsLabel: "Categories",
+  collectionsTitle: "Shop by Collection",
+
+  latestLabel: "New Arrivals",
+  latestTitle: "Latest Drop",
+
+  catalogLabel: "The Catalog",
+  catalogTitle: "Most Wanted",
+  catalogSubtext: "Hand-picked bestsellers. Each piece designed to outlast trends.",
+
+  brandStoryLabel: "Our Story",
+  brandStoryImage: "/images/hoodie-rust.webp",
   brandStoryTitle: "Born From the Streets.\nBuilt for the Future.",
   brandStoryText1: "Rust Revive was born in Dhaka out of frustration — the frustration of paying premium prices for average quality, or settling for cheap products that fall apart after one wash.",
   brandStoryText2: "We set out to prove that you don't have to choose. Premium materials, real craftsmanship, and designs that actually hit — all at prices that respect the hustle.",
@@ -21,7 +35,10 @@ const defaultHome = {
     { val: "400 GSM", label: "Premium Fleece" },
     { val: "100%", label: "Local Crafted" },
     { val: "0", label: "Compromise" }
-  ]
+  ],
+
+  testimonialsLabel: "Social Proof",
+  testimonialsTitle: "The Streets Don't Lie"
 };
 
 /* ─── Scroll Reveal Wrapper ─────────────────────────────────────────── */
@@ -51,7 +68,7 @@ function Hero({ settings }) {
       {/* BG Image with parallax */}
       <motion.div style={{ y }} className="absolute inset-0 z-0">
         <img
-          src="/images/hero-banner.webp"
+          src={settings.heroBgImage || defaultHome.heroBgImage}
           alt="Rust Revive Hero"
           className="w-full h-full object-cover"
         />
@@ -137,14 +154,14 @@ function Hero({ settings }) {
 }
 
 /* ─── Collections ────────────────────────────────────────────────────── */
-function Collections() {
+function Collections({ settings }) {
   return (
     <section className="py-24 lg:py-32">
       <div className="container-site">
         <Reveal className="flex items-end justify-between mb-12">
           <div>
-            <p className="section-label mb-2">Categories</p>
-            <h2 className="font-bold text-h2">Shop by Collection</h2>
+            <p className="section-label mb-2">{settings.collectionsLabel || defaultHome.collectionsLabel}</p>
+            <h2 className="font-bold text-h2">{settings.collectionsTitle || defaultHome.collectionsTitle}</h2>
           </div>
           <Link to="/shop" className="btn-ghost hidden sm:flex items-center gap-1 group">
             View All
@@ -187,7 +204,7 @@ function Collections() {
 }
 
 /* ─── Latest Drop ───────────────────────────────────────────────────── */
-function LatestDrop({ products }) {
+function LatestDrop({ products, settings }) {
   const newProducts = products.filter((p) => p.is_new || p.badge === 'NEW DROP' || p.badge === 'LIMITED').slice(0, 6);
 
   if (newProducts.length === 0) return null;
@@ -197,8 +214,8 @@ function LatestDrop({ products }) {
       <div className="container-site mb-8">
         <Reveal className="flex items-end justify-between">
           <div>
-            <p className="section-label mb-2">New Arrivals</p>
-            <h2 className="font-bold text-h2">Latest Drop</h2>
+            <p className="section-label mb-2">{settings.latestLabel || defaultHome.latestLabel}</p>
+            <h2 className="font-bold text-h2">{settings.latestTitle || defaultHome.latestTitle}</h2>
           </div>
           <Link to="/shop" className="btn-ghost hidden sm:flex items-center gap-1 group">
             All Products
@@ -232,17 +249,17 @@ function LatestDrop({ products }) {
 }
 
 /* ─── Product Grid ───────────────────────────────────────────────────── */
-function ProductGrid({ products }) {
+function ProductGrid({ products, settings }) {
   const featured = products.slice(0, 4);
 
   return (
     <section className="py-24 lg:py-32">
       <div className="container-site">
         <Reveal className="text-center mb-12">
-          <p className="section-label mb-3">The Catalog</p>
-          <h2 className="font-bold text-h2 mb-4">Most Wanted</h2>
-          <p className="text-surface-secondary max-w-md mx-auto">
-            Hand-picked bestsellers. Each piece designed to outlast trends.
+          <p className="section-label mb-3">{settings.catalogLabel || defaultHome.catalogLabel}</p>
+          <h2 className="font-bold text-h2 mb-4">{settings.catalogTitle || defaultHome.catalogTitle}</h2>
+          <p className="text-surface-secondary max-w-md mx-auto whitespace-pre-line">
+            {settings.catalogSubtext || defaultHome.catalogSubtext}
           </p>
         </Reveal>
 
@@ -277,7 +294,7 @@ function BrandStory({ settings }) {
           <Reveal className="relative">
             <div className="relative rounded-2xl overflow-hidden aspect-square lg:aspect-[4/5]">
               <img
-                src="/images/hoodie-rust.webp"
+                src={settings.brandStoryImage || defaultHome.brandStoryImage}
                 alt="Rust Revive Brand Story"
                 className="w-full h-full object-cover"
               />
@@ -302,7 +319,7 @@ function BrandStory({ settings }) {
           {/* Text */}
           <div>
             <Reveal>
-              <p className="section-label mb-4">Our Story</p>
+              <p className="section-label mb-4">{settings.brandStoryLabel || defaultHome.brandStoryLabel}</p>
               <h2 className="font-black text-h1 mb-6 leading-tight whitespace-pre-line">
                 {settings.brandStoryTitle || defaultHome.brandStoryTitle}
               </h2>
@@ -339,7 +356,7 @@ function BrandStory({ settings }) {
 }
 
 /* ─── Testimonials ───────────────────────────────────────────────────── */
-function Testimonials() {
+function Testimonials({ settings }) {
   const reviews = [
     { name: 'Arif R.', city: 'Dhaka', rating: 5, text: 'Best quality hoodie I\'ve found in BD. The rust color is insane IRL. Already ordered my second one.' },
     { name: 'Nadia I.', city: 'Chittagong', rating: 5, text: 'Fast delivery, premium packaging. Feels like ordering from a global brand but local. Love the brand story.' },
@@ -351,8 +368,8 @@ function Testimonials() {
     <section className="py-24 lg:py-32">
       <div className="container-site">
         <Reveal className="text-center mb-12">
-          <p className="section-label mb-3">Social Proof</p>
-          <h2 className="font-bold text-h2">The Streets Don't Lie</h2>
+          <p className="section-label mb-3">{settings.testimonialsLabel || defaultHome.testimonialsLabel}</p>
+          <h2 className="font-bold text-h2">{settings.testimonialsTitle || defaultHome.testimonialsTitle}</h2>
         </Reveal>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -415,15 +432,15 @@ export default function Home() {
   return (
     <main>
       <Hero settings={settings} />
-      <Collections />
+      <Collections settings={settings} />
       {!loading && products.length > 0 && (
         <>
-          <LatestDrop products={products} />
-          <ProductGrid products={products} />
+          <LatestDrop products={products} settings={settings} />
+          <ProductGrid products={products} settings={settings} />
         </>
       )}
       <BrandStory settings={settings} />
-      <Testimonials />
+      <Testimonials settings={settings} />
     </main>
   );
 }

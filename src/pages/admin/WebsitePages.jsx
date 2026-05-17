@@ -1,14 +1,28 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, Check, Globe, Layout, Type, FileText, Loader2, RefreshCw } from 'lucide-react';
+import { Save, Check, Globe, Layout, Type, FileText, Loader2, Image, Layers, Star } from 'lucide-react';
 import { getSiteSettings, updateSiteSettings } from '../../lib/api';
 
 const defaultHome = {
+  heroBgImage: "/images/hero-banner.webp",
+  heroBadge: "New Season Drop",
+  heroSubBadge: "SS 2026",
   heroHeading: "WEAR THE STREETS.\nOWN THE MOMENT.",
   heroSubtext: "Premium streetwear for Bangladesh's next generation. Built to last. Priced for the culture.",
   heroButtonText: "Shop Now",
-  heroBadge: "New Season Drop",
-  heroSubBadge: "SS 2026",
+
+  collectionsLabel: "Categories",
+  collectionsTitle: "Shop by Collection",
+
+  latestLabel: "New Arrivals",
+  latestTitle: "Latest Drop",
+
+  catalogLabel: "The Catalog",
+  catalogTitle: "Most Wanted",
+  catalogSubtext: "Hand-picked bestsellers. Each piece designed to outlast trends.",
+
+  brandStoryLabel: "Our Story",
+  brandStoryImage: "/images/hoodie-rust.webp",
   brandStoryTitle: "Born From the Streets.\nBuilt for the Future.",
   brandStoryText1: "Rust Revive was born in Dhaka out of frustration — the frustration of paying premium prices for average quality, or settling for cheap products that fall apart after one wash.",
   brandStoryText2: "We set out to prove that you don't have to choose. Premium materials, real craftsmanship, and designs that actually hit — all at prices that respect the hustle.",
@@ -16,7 +30,10 @@ const defaultHome = {
     { val: "400 GSM", label: "Premium Fleece" },
     { val: "100%", label: "Local Crafted" },
     { val: "0", label: "Compromise" }
-  ]
+  ],
+
+  testimonialsLabel: "Social Proof",
+  testimonialsTitle: "The Streets Don't Lie"
 };
 
 const defaultShop = {
@@ -98,7 +115,7 @@ export default function WebsitePages() {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="p-6 max-w-5xl mx-auto space-y-6 pb-24">
       {/* Header & Actions */}
       <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-base-300">
         <div>
@@ -107,7 +124,7 @@ export default function WebsitePages() {
             Website Content Manager
           </h1>
           <p className="text-surface-secondary text-small mt-1">
-            Dynamically update live website copy, headings, and CTAs in real-time.
+            Dynamically update live website copy, section headings, and images in real-time.
           </p>
         </div>
         <button
@@ -147,7 +164,7 @@ export default function WebsitePages() {
           }`}
         >
           <Layout size={16} />
-          Home Page
+          Home Page Sections
         </button>
         <button
           onClick={() => setActiveTab('shop')}
@@ -158,7 +175,7 @@ export default function WebsitePages() {
           }`}
         >
           <FileText size={16} />
-          Shop Page
+          Shop Page Header
         </button>
       </div>
 
@@ -184,6 +201,20 @@ export default function WebsitePages() {
                   <Type size={18} />
                   Hero Section
                 </h2>
+
+                <div>
+                  <label className="label flex items-center gap-1.5">
+                    <Image size={15} className="text-brand" />
+                    Hero Background Image URL
+                  </label>
+                  <input
+                    type="text"
+                    className="input font-mono text-sm"
+                    value={homeData.heroBgImage || ''}
+                    onChange={(e) => handleHomeChange('heroBgImage', e.target.value)}
+                  />
+                  <p className="text-xs text-surface-muted mt-1">Provide a relative path (e.g. /images/hero-banner.webp) or an absolute image URL.</p>
+                </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div>
@@ -237,12 +268,133 @@ export default function WebsitePages() {
                 </div>
               </div>
 
+              {/* Collections Section Header */}
+              <div className="glass rounded-2xl p-6 border border-base-300 space-y-5">
+                <h2 className="font-bold text-h5 text-brand border-b border-base-300/50 pb-3 flex items-center gap-2">
+                  <Layers size={18} />
+                  Collections Section Header
+                </h2>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Section Subtitle / Label</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={homeData.collectionsLabel || ''}
+                      onChange={(e) => handleHomeChange('collectionsLabel', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Main Title</label>
+                    <input
+                      type="text"
+                      className="input font-bold"
+                      value={homeData.collectionsTitle || ''}
+                      onChange={(e) => handleHomeChange('collectionsTitle', e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Latest Drop Section Header */}
+              <div className="glass rounded-2xl p-6 border border-base-300 space-y-5">
+                <h2 className="font-bold text-h5 text-brand border-b border-base-300/50 pb-3 flex items-center gap-2">
+                  <Star size={18} />
+                  Latest Drop Section Header
+                </h2>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Section Subtitle / Label</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={homeData.latestLabel || ''}
+                      onChange={(e) => handleHomeChange('latestLabel', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Main Title</label>
+                    <input
+                      type="text"
+                      className="input font-bold"
+                      value={homeData.latestTitle || ''}
+                      onChange={(e) => handleHomeChange('latestTitle', e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Catalog Section Header */}
+              <div className="glass rounded-2xl p-6 border border-base-300 space-y-5">
+                <h2 className="font-bold text-h5 text-brand border-b border-base-300/50 pb-3 flex items-center gap-2">
+                  <Layout size={18} />
+                  Product Catalog Section Header
+                </h2>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Section Subtitle / Label</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={homeData.catalogLabel || ''}
+                      onChange={(e) => handleHomeChange('catalogLabel', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Main Title</label>
+                    <input
+                      type="text"
+                      className="input font-bold"
+                      value={homeData.catalogTitle || ''}
+                      onChange={(e) => handleHomeChange('catalogTitle', e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="label">Section Description / Subtext</label>
+                  <textarea
+                    rows={2}
+                    className="input py-3"
+                    value={homeData.catalogSubtext || ''}
+                    onChange={(e) => handleHomeChange('catalogSubtext', e.target.value)}
+                  />
+                </div>
+              </div>
+
               {/* Brand Story Copy */}
               <div className="glass rounded-2xl p-6 border border-base-300 space-y-5">
                 <h2 className="font-bold text-h5 text-brand border-b border-base-300/50 pb-3 flex items-center gap-2">
                   <FileText size={18} />
                   Brand Story Section
                 </h2>
+
+                <div>
+                  <label className="label flex items-center gap-1.5">
+                    <Image size={15} className="text-brand" />
+                    Brand Story Image URL
+                  </label>
+                  <input
+                    type="text"
+                    className="input font-mono text-sm"
+                    value={homeData.brandStoryImage || ''}
+                    onChange={(e) => handleHomeChange('brandStoryImage', e.target.value)}
+                  />
+                  <p className="text-xs text-surface-muted mt-1">Provide a relative path (e.g. /images/hoodie-rust.webp) or an absolute image URL.</p>
+                </div>
+
+                <div>
+                  <label className="label">Section Subtitle / Label</label>
+                  <input
+                    type="text"
+                    className="input max-w-xs"
+                    value={homeData.brandStoryLabel || ''}
+                    onChange={(e) => handleHomeChange('brandStoryLabel', e.target.value)}
+                  />
+                </div>
 
                 <div>
                   <label className="label">Brand Story Heading</label>
@@ -282,6 +434,35 @@ export default function WebsitePages() {
                     value={statsText}
                     onChange={(e) => setStatsText(e.target.value)}
                   />
+                </div>
+              </div>
+
+              {/* Testimonials Section Header */}
+              <div className="glass rounded-2xl p-6 border border-base-300 space-y-5">
+                <h2 className="font-bold text-h5 text-brand border-b border-base-300/50 pb-3 flex items-center gap-2">
+                  <Star size={18} />
+                  Testimonials Section Header
+                </h2>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Section Subtitle / Label</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={homeData.testimonialsLabel || ''}
+                      onChange={(e) => handleHomeChange('testimonialsLabel', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Main Title</label>
+                    <input
+                      type="text"
+                      className="input font-bold"
+                      value={homeData.testimonialsTitle || ''}
+                      onChange={(e) => handleHomeChange('testimonialsTitle', e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
             </motion.div>
