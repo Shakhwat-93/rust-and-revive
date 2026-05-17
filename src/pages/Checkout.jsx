@@ -269,6 +269,7 @@ export default function Checkout() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
+  const [orderedItems, setOrderedItems] = useState([]);
 
   const isDhaka = DHAKA_AREAS.some(a =>
     form.city.toLowerCase().includes(a.toLowerCase())
@@ -277,7 +278,7 @@ export default function Checkout() {
   const subtotal = items.reduce((s, i) => s + i.product.price * i.quantity, 0);
   const total = subtotal + shipping;
 
-  const set = (field) => (e) => setForm(prev => ({ ...prev, [field]: e.target.value }));
+  const setField = (field) => (e) => setForm(prev => ({ ...prev, [field]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -314,11 +315,13 @@ export default function Checkout() {
     try {
       const { error: dbError } = await supabase.from('orders').insert([orderPayload]);
       if (dbError) {
-        // Table may not exist yet — still show success to user
-        console.warn('DB insert failed (table may not exist):', dbError.message);
+        console.warn('DB insert failed:', dbError.message);
       }
+      // Snapshot items BEFORE clearing cart so success screen can show them
+      const orderedItems = [...items];
       setOrderNumber(num);
       clearCart();
+      setOrderedItems(orderedItems);
       setSuccess(true);
     } catch (err) {
       setError('Something went wrong. Please try again.');
@@ -328,7 +331,7 @@ export default function Checkout() {
   };
 
   if (success) {
-    return <SuccessScreen orderNumber={orderNumber} items={items} total={total} shipping={shipping} onContinue={() => navigate('/')} />;
+    return <SuccessScreen orderNumber={orderNumber} items={orderedItems} total={total} shipping={shipping} onContinue={() => navigate('/')} />;
   }
 
   if (items.length === 0) {
@@ -409,7 +412,7 @@ export default function Checkout() {
                     type="text"
                     placeholder="e.g. Arif Rahman"
                     value={form.name}
-                    onChange={set('name')}
+                    onChange={setField('name')}
                     className="input"
                     id="checkout-name"
                   />
@@ -421,9 +424,7 @@ export default function Checkout() {
                     type="tel"
                     placeholder="01XXXXXXXXX"
                     value={form.phone}
-                    onChange={set('phone')}
-                    pattern="^01[3-9]\d{8}$"
-                    title="Enter a valid Bangladeshi phone number"
+                    onChange={setField('phone')}
                     className="input font-mono tracking-widest"
                     id="checkout-phone"
                   />
@@ -435,7 +436,7 @@ export default function Checkout() {
                     rows={2}
                     placeholder="House 12, Road 5, Mirpur-10..."
                     value={form.address}
-                    onChange={set('address')}
+                    onChange={setField('address')}
                     className="input resize-none"
                     id="checkout-address"
                   />
@@ -447,7 +448,7 @@ export default function Checkout() {
                     type="text"
                     placeholder="e.g. Dhaka, Chittagong, Sylhet..."
                     value={form.city}
-                    onChange={set('city')}
+                    onChange={setField('city')}
                     list="city-suggestions"
                     className="input"
                     id="checkout-city"
@@ -464,7 +465,7 @@ export default function Checkout() {
                     rows={2}
                     placeholder="Any special instructions? (optional)"
                     value={form.note}
-                    onChange={set('note')}
+                    onChange={setField('note')}
                     className="input resize-none"
                     id="checkout-note"
                   />
