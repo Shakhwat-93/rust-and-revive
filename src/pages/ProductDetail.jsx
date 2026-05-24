@@ -101,6 +101,17 @@ export default function ProductDetail() {
     }, 500);
   };
 
+  const handleBuyNow = () => {
+    if (product.in_stock === false) return;
+    if (!selectedSize && product.sizes?.length > 0) {
+      setSizeError(true);
+      setTimeout(() => setSizeError(false), 2000);
+      return;
+    }
+    addItem(product, selectedSize || 'One Size', 1);
+    navigate('/checkout');
+  };
+
   const images = Array.isArray(product.images) && product.images.length > 0 ? product.images : [product.image];
 
   // ─── Extract Size Guide Multi-Column Data ───
@@ -321,46 +332,50 @@ export default function ProductDetail() {
               </motion.div>
             )}
 
-            {/* Add to Cart */}
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="space-y-3">
-              <motion.button
-                id="add-to-cart-btn"
+            {/* Add to Cart & Buy Now Buttons */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="flex flex-col sm:flex-row gap-3">
+              {/* Add to Cart */}
+              <button
                 disabled={product.in_stock === false}
                 onClick={handleAddToCart}
-                whileTap={{ scale: product.in_stock !== false ? 0.98 : 1 }}
-                className={`w-full flex items-center justify-center gap-3 py-4 rounded-xl font-bold text-base tracking-wide transition-all duration-300 relative overflow-hidden ${
+                className={`flex-1 flex items-center justify-center gap-2.5 py-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all duration-300 border-2 ${
                   product.in_stock === false
-                    ? 'bg-base-600 text-surface-muted cursor-not-allowed border border-base-300'
+                    ? 'border-base-300 text-surface-muted bg-base-600/20 cursor-not-allowed'
                     : added
-                    ? 'bg-emerald-500 text-white shadow-[0_0_30px_rgba(16,185,129,0.4)]'
-                    : adding
-                    ? 'bg-brand/80 text-white'
-                    : 'bg-brand text-white hover:bg-brand-400 shadow-glow hover:shadow-glow-lg'
+                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                    : 'border-brand text-brand hover:bg-brand hover:text-white shadow-glow-sm'
                 }`}
               >
                 {product.in_stock === false ? (
-                  'Currently Stock Out'
+                  'Stock Out'
                 ) : added ? (
                   <>
-                    <Check size={20} className="stroke-[2.5]" />
-                    Added to Cart!
+                    <Check size={16} />
+                    Added!
                   </>
                 ) : adding ? (
-                  <>
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 0.5, repeat: Infinity, ease: 'linear' }}
-                      className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-                    />
-                    Adding...
-                  </>
+                  'Adding...'
                 ) : (
                   <>
-                    <ShoppingBag size={20} />
-                    Add to Cart — {formatPrice(product.price)}
+                    <ShoppingBag size={16} />
+                    Add To Cart
                   </>
                 )}
-              </motion.button>
+              </button>
+
+              {/* Buy Now */}
+              <button
+                disabled={product.in_stock === false}
+                onClick={handleBuyNow}
+                className={`flex-1 flex items-center justify-center gap-2.5 py-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all duration-300 shadow-glow hover:shadow-glow-lg ${
+                  product.in_stock === false
+                    ? 'bg-base-600 text-surface-muted cursor-not-allowed border border-base-300'
+                    : 'bg-brand text-white hover:bg-brand-400'
+                }`}
+              >
+                <Zap size={16} />
+                Buy Now
+              </button>
             </motion.div>
 
             {/* Trust Badges */}
@@ -591,36 +606,42 @@ export default function ProductDetail() {
         )}
       </AnimatePresence>
 
-      {/* ─── Sticky Mobile ATC ─── */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden p-4 glass-dark border-t border-base-300">
-        <div className="flex items-center gap-3 max-w-lg mx-auto">
-          <div className="flex-1">
-            <p className="font-semibold text-small line-clamp-1">{product.name}</p>
-            <p className="text-brand font-bold">{formatPrice(product.price)}</p>
+      {/* ─── Sticky Mobile ATC & Buy Now ─── */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden p-3 glass-dark border-t border-base-300">
+        <div className="flex items-center gap-2 max-w-lg mx-auto">
+          {/* Info */}
+          <div className="flex-1 min-w-0 pr-2">
+            <p className="font-bold text-xs line-clamp-1">{product.name}</p>
+            <p className="text-brand font-black text-sm mt-0.5">{formatPrice(product.price)}</p>
           </div>
-          <button
-            disabled={product.in_stock === false}
-            onClick={handleAddToCart}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-small transition-all duration-300 ${
-              product.in_stock === false
-                ? 'bg-base-600 text-surface-muted'
-                : added
-                ? 'bg-emerald-500 text-white'
-                : 'bg-brand text-white hover:bg-brand-400 shadow-glow'
-            }`}
-          >
-            {product.in_stock === false ? (
-               'Stock Out'
-            ) : added ? (
-              <>
-                <Check size={16} /> Added!
-              </>
-            ) : (
-              <>
-                <ShoppingBag size={16} /> Add
-              </>
-            )}
-          </button>
+          {/* Actions */}
+          <div className="flex gap-2 shrink-0">
+            <button
+              disabled={product.in_stock === false}
+              onClick={handleAddToCart}
+              className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 border-2 ${
+                product.in_stock === false
+                  ? 'border-base-300 text-surface-muted bg-base-600/10 cursor-not-allowed'
+                  : added
+                  ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                  : 'border-brand text-brand hover:bg-brand hover:text-white'
+              }`}
+            >
+              {product.in_stock === false ? 'Out' : added ? 'Added' : 'Add'}
+            </button>
+            <button
+              disabled={product.in_stock === false}
+              onClick={handleBuyNow}
+              className={`flex items-center gap-1 px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 ${
+                product.in_stock === false
+                  ? 'bg-base-600 text-surface-muted cursor-not-allowed'
+                  : 'bg-brand text-white shadow-glow-sm'
+              }`}
+            >
+              <Zap size={11} />
+              Buy Now
+            </button>
+          </div>
         </div>
       </div>
     </div>

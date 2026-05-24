@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, Check, Globe, Layout, Type, FileText, Loader2, Image, Layers, Star } from 'lucide-react';
+import { Save, Check, Globe, Layout, Type, FileText, Loader2, Image, Layers, Star, Truck } from 'lucide-react';
 import { getSiteSettings, updateSiteSettings } from '../../lib/api';
 
 const InstagramIcon = ({ size = 24, className = "" }) => (
@@ -59,22 +59,24 @@ const defaultShop = {
 };
 
 export default function WebsitePages() {
-  const [activeTab, setActiveTab] = useState('home'); // 'home' or 'shop'
+  const [activeTab, setActiveTab] = useState('home'); // 'home', 'shop', or 'shipping'
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const [homeData, setHomeData] = useState(defaultHome);
   const [shopData, setShopData] = useState(defaultShop);
+  const [shippingData, setShippingData] = useState({ inside: 60, sub: 100, outside: 120 });
   const [statsText, setStatsText] = useState(JSON.stringify(defaultHome.brandStoryStats, null, 2));
 
   useEffect(() => {
     async function load() {
       setLoading(true);
       try {
-        const [h, s] = await Promise.all([
+        const [h, s, sh] = await Promise.all([
           getSiteSettings('home_page'),
           getSiteSettings('shop_page'),
+          getSiteSettings('shipping_rates'),
         ]);
 
         if (h) {
@@ -84,6 +86,9 @@ export default function WebsitePages() {
         }
         if (s) {
           setShopData({ ...defaultShop, ...s });
+        }
+        if (sh) {
+          setShippingData({ inside: 60, sub: 100, outside: 120, ...sh });
         }
       } catch (err) {
         console.error('Error fetching site settings:', err);
@@ -118,8 +123,10 @@ export default function WebsitePages() {
 
       if (activeTab === 'home') {
         await updateSiteSettings('home_page', newHome);
-      } else {
+      } else if (activeTab === 'shop') {
         await updateSiteSettings('shop_page', shopData);
+      } else if (activeTab === 'shipping') {
+        await updateSiteSettings('shipping_rates', shippingData);
       }
 
       setSaved(true);
@@ -174,10 +181,10 @@ export default function WebsitePages() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-base-300 pb-2">
+      <div className="flex items-center gap-2 border-b border-base-300 pb-2 overflow-x-auto hide-scrollbar">
         <button
           onClick={() => setActiveTab('home')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-small font-bold transition-all duration-200 ${
+          className={`flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-lg text-small font-bold transition-all duration-200 ${
             activeTab === 'home'
               ? 'bg-brand text-white shadow-glow-sm'
               : 'text-surface-secondary hover:text-surface-primary glass'
@@ -188,7 +195,7 @@ export default function WebsitePages() {
         </button>
         <button
           onClick={() => setActiveTab('shop')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-small font-bold transition-all duration-200 ${
+          className={`flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-lg text-small font-bold transition-all duration-200 ${
             activeTab === 'shop'
               ? 'bg-brand text-white shadow-glow-sm'
               : 'text-surface-secondary hover:text-surface-primary glass'
@@ -196,6 +203,17 @@ export default function WebsitePages() {
         >
           <FileText size={16} />
           Shop Page Header
+        </button>
+        <button
+          onClick={() => setActiveTab('shipping')}
+          className={`flex-shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-lg text-small font-bold transition-all duration-200 ${
+            activeTab === 'shipping'
+              ? 'bg-brand text-white shadow-glow-sm'
+              : 'text-surface-secondary hover:text-surface-primary glass'
+          }`}
+        >
+          <Truck size={16} />
+          Shipping Rates
         </button>
       </div>
 
@@ -596,7 +614,7 @@ export default function WebsitePages() {
                 </div>
               </div>
             </motion.div>
-          ) : (
+          ) : activeTab === 'shop' ? (
             <motion.div
               key="shop"
               initial={{ opacity: 0, y: 16 }}
@@ -630,6 +648,63 @@ export default function WebsitePages() {
                       value={shopData.subtitle || ''}
                       onChange={(e) => handleShopChange('subtitle', e.target.value)}
                     />
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="shipping"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-8"
+            >
+              {/* Shipping Rates Section */}
+              <div className="glass rounded-2xl p-6 border border-base-300 space-y-5">
+                <h2 className="font-bold text-h5 text-brand border-b border-base-300/50 pb-3 flex items-center gap-2">
+                  <Truck size={18} />
+                  Delivery & Shipping Charges
+                </h2>
+
+                <p className="text-xs text-surface-muted leading-relaxed">
+                  These delivery charges are loaded dynamically on the checkout page when customers choose their delivery region.
+                </p>
+
+                <div className="grid sm:grid-cols-3 gap-6">
+                  <div>
+                    <label className="label">Inside Dhaka (৳)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="input font-bold text-lg text-brand"
+                      value={shippingData.inside ?? 60}
+                      onChange={(e) => setShippingData(p => ({ ...p, inside: Number(e.target.value) }))}
+                    />
+                    <p className="text-[10px] text-surface-muted mt-1">Default rate: ৳60</p>
+                  </div>
+                  <div>
+                    <label className="label">Sub Dhaka / Dhaka Suburbs (৳)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="input font-bold text-lg text-brand"
+                      value={shippingData.sub ?? 100}
+                      onChange={(e) => setShippingData(p => ({ ...p, sub: Number(e.target.value) }))}
+                    />
+                    <p className="text-[10px] text-surface-muted mt-1">Default rate: ৳100 (e.g. Savar, Gazipur)</p>
+                  </div>
+                  <div>
+                    <label className="label">Outside Dhaka (৳)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="input font-bold text-lg text-brand"
+                      value={shippingData.outside ?? 120}
+                      onChange={(e) => setShippingData(p => ({ ...p, outside: Number(e.target.value) }))}
+                    />
+                    <p className="text-[10px] text-surface-muted mt-1">Default rate: ৳120</p>
                   </div>
                 </div>
               </div>

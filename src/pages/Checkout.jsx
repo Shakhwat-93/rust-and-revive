@@ -1,24 +1,22 @@
 // src/pages/Checkout.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   User, Phone, MapPin, MessageSquare, ShoppingBag,
   CheckCircle, Loader2, ChevronRight, Tag, Truck, CreditCard,
-  ArrowLeft, Zap, Package,
+  ArrowLeft, Zap, Package, Mail,
 } from 'lucide-react';
 import useCartStore from '../store/cartStore';
 import { supabase } from '../lib/supabase';
 
 const formatPrice = (p) => `৳${Number(p).toLocaleString('en-BD')}`;
 
-const SHIPPING_INSIDE_DHAKA = 60;
-const SHIPPING_OUTSIDE_DHAKA = 120;
-
-const DHAKA_AREAS = [
-  'Dhaka', 'Mirpur', 'Gulshan', 'Banani', 'Dhanmondi', 'Motijheel',
-  'Uttara', 'Mohammadpur', 'Khilgaon', 'Rayer Bazar', 'Badda',
-];
+const DEFAULT_SHIPPING = {
+  inside: 60,
+  sub: 100,
+  outside: 120
+};
 
 function generateOrderNumber() {
   const now = Date.now().toString(36).toUpperCase();
@@ -264,6 +262,7 @@ export default function Checkout() {
   const [form, setForm] = useState({
     name: '',
     phone: '',
+    email: '',
     address: '',
     city: '',
     note: '',
@@ -274,10 +273,36 @@ export default function Checkout() {
   const [orderNumber, setOrderNumber] = useState('');
   const [orderedItems, setOrderedItems] = useState([]);
 
-  const isDhaka = DHAKA_AREAS.some(a =>
-    form.city.toLowerCase().includes(a.toLowerCase())
-  );
-  const shipping = form.city.trim() === '' ? SHIPPING_OUTSIDE_DHAKA : (isDhaka ? SHIPPING_INSIDE_DHAKA : SHIPPING_OUTSIDE_DHAKA);
+  const [shippingRates, setShippingRates] = useState(DEFAULT_SHIPPING);
+  const [shippingArea, setShippingArea] = useState('inside'); // 'inside' | 'sub' | 'outside'
+
+  useEffect(() => {
+    async function loadRates() {
+      try {
+        const { data, error } = await supabase
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'shipping_rates')
+          .single();
+        if (data && data.value) {
+          setShippingRates({
+            inside: Number(data.value.inside ?? DEFAULT_SHIPPING.inside),
+            sub: Number(data.value.sub ?? DEFAULT_SHIPPING.sub),
+            outside: Number(data.value.outside ?? DEFAULT_SHIPPING.outside)
+          });
+        }
+      } catch (err) {
+        console.warn('Failed to load dynamic shipping rates, using defaults:', err);
+      }
+    }
+    loadRates();
+  }, []);
+
+  const shipping = shippingArea === 'inside'
+    ? shippingRates.inside
+    : shippingArea === 'sub'
+      ? shippingRates.sub
+      : shippingRates.outside;
   const subtotal = items.reduce((s, i) => s + i.product.price * i.quantity, 0);
   const total = subtotal + shipping;
 
@@ -295,6 +320,7 @@ export default function Checkout() {
       order_number: num,
       name: form.name.trim(),
       phone: form.phone.trim(),
+      email: form.email.trim(),
       address: form.address.trim(),
       city: form.city.trim(),
       note: form.note.trim() || null,
@@ -316,10 +342,23 @@ export default function Checkout() {
     };
 
     try {
-      const { error: dbError } = await supabase.from('orders').insert([orderPayload]);
-      if (dbError) {
-        console.warn('DB insert failed:', dbError.message);
+      let { error: dbError } = await supabase.from('orders').insert([orderPayload]);
+
+      // Zero-downtime DB Schema Fallback: If DB does not have the email column, insert without it and prepend to notes
+      if (dbError && (dbError.message?.toLowerCase().includes('email') || dbError.code === 'PGRST204')) {
+        console.warn('Orders table does not support email column. Retrying with email in notes...');
+        const fallbackPayload = { ...orderPayload };
+        delete fallbackPayload.email;
+        fallbackPayload.note = `[Email: ${orderPayload.email}]` + (orderPayload.note ? `\nNote: ${orderPayload.note}` : '');
+        
+        const { error: retryError } = await supabase.from('orders').insert([fallbackPayload]);
+        dbError = retryError;
       }
+
+      if (dbError) {
+        throw new Error(dbError.message);
+      }
+
       // Snapshot items BEFORE clearing cart so success screen can show them
       const orderedItems = [...items];
       setOrderNumber(num);
@@ -327,7 +366,7 @@ export default function Checkout() {
       setOrderedItems(orderedItems);
       setSuccess(true);
     } catch (err) {
-      setError('Something went wrong. Please try again.');
+      setError(err.message || 'Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -433,6 +472,65 @@ export default function Checkout() {
                   />
                 </Field>
 
+                <Field label="Email Address" icon={Mail} required hint="For order updates and confirmations">
+                  <input
+                    required
+                    type="email"
+                    placeholder="e.g. arif@email.com"
+                    value={form.email}
+                    onChange={setField('email')}
+                    className="input"
+                    id="checkout-email"
+                  />
+                </Field>
+
+                <Field label="Shipping Area" icon={Truck} required>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {[
+                      { id: 'inside', label: 'Inside Dhaka', fee: shippingRates.inside, time: '2–3 days' },
+                      { id: 'sub', label: 'Sub Dhaka', fee: shippingRates.sub, time: '3–4 days' },
+                      { id: 'outside', label: 'Outside Dhaka', fee: shippingRates.outside, time: '3–5 days' }
+                    ].map((area) => {
+                      const isSelected = shippingArea === area.id;
+                      return (
+                        <div
+                          key={area.id}
+                          onClick={() => setShippingArea(area.id)}
+                          className={`cursor-pointer p-4 rounded-xl border-2 transition-all duration-200 flex flex-col justify-between ${
+                            isSelected
+                              ? 'border-brand bg-brand/5 shadow-glow-sm'
+                              : 'border-base-300 bg-base-950/40 hover:border-base-400'
+                          }`}
+                        >
+                          <div>
+                            <p className="font-bold text-xs text-surface-primary">{area.label}</p>
+                            <p className="text-[10px] text-surface-muted mt-0.5">{area.time}</p>
+                          </div>
+                          <p className="font-black text-sm text-brand mt-3">৳{area.fee}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Field>
+
+                <Field label="City / District" icon={MapPin} required hint="Enter your specific district or city name">
+                  <input
+                    required
+                    type="text"
+                    placeholder="e.g. Dhaka, Chittagong, Sylhet, Savar..."
+                    value={form.city}
+                    onChange={setField('city')}
+                    list="city-suggestions"
+                    className="input"
+                    id="checkout-city"
+                  />
+                  <datalist id="city-suggestions">
+                    {['Dhaka', 'Chittagong', 'Sylhet', 'Rajshahi', 'Khulna', 'Barisal', 'Comilla', 'Gazipur', 'Narayanganj', 'Savar'].map(c => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                </Field>
+
                 <Field label="Full Address" icon={MapPin} required hint="House/flat no., road, area">
                   <textarea
                     required
@@ -443,24 +541,6 @@ export default function Checkout() {
                     className="input resize-none"
                     id="checkout-address"
                   />
-                </Field>
-
-                <Field label="City / District" icon={MapPin} required hint={`Dhaka inside: ৳${SHIPPING_INSIDE_DHAKA} · Outside: ৳${SHIPPING_OUTSIDE_DHAKA}`}>
-                  <input
-                    required
-                    type="text"
-                    placeholder="e.g. Dhaka, Chittagong, Sylhet..."
-                    value={form.city}
-                    onChange={setField('city')}
-                    list="city-suggestions"
-                    className="input"
-                    id="checkout-city"
-                  />
-                  <datalist id="city-suggestions">
-                    {['Dhaka', 'Chittagong', 'Sylhet', 'Rajshahi', 'Khulna', 'Barisal', 'Comilla', 'Gazipur', 'Narayanganj'].map(c => (
-                      <option key={c} value={c} />
-                    ))}
-                  </datalist>
                 </Field>
 
                 <Field label="Order Note" icon={MessageSquare}>

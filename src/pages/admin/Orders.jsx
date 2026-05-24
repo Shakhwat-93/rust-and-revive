@@ -6,6 +6,23 @@ import { supabase } from '../../lib/supabase';
 
 const formatPrice = (p) => `৳${Number(p).toLocaleString('en-BD')}`;
 
+function getOrderEmail(order) {
+  if (order.email) return order.email;
+  if (order.note && order.note.startsWith('[Email: ')) {
+    const match = order.note.match(/^\[Email:\s*([^\]]+)\]/);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+function getCleanNote(note) {
+  if (!note) return null;
+  if (note.startsWith('[Email: ')) {
+    return note.replace(/^\[Email:\s*([^\]]+)\]\s*\n?/, '');
+  }
+  return note;
+}
+
 const statusConfig = {
   pending:    { cls: 'badge-warning',  label: 'Pending',    next: 'processing' },
   processing: { cls: 'badge-brand',    label: 'Processing', next: 'shipped' },
@@ -53,6 +70,9 @@ function OrderRow({ order, index, onStatusChange }) {
         <td>
           <p className="font-bold text-xs text-surface-primary">{order.name}</p>
           <p className="text-[10px] text-surface-muted">{order.phone}</p>
+          {getOrderEmail(order) && (
+            <p className="text-[10px] text-brand/90 font-mono mt-0.5 break-all max-w-[150px]">{getOrderEmail(order)}</p>
+          )}
         </td>
         <td>
           <p className="text-xs text-surface-primary">{items.length} item{items.length !== 1 ? 's' : ''}</p>
@@ -117,15 +137,24 @@ function OrderRow({ order, index, onStatusChange }) {
 
                 {/* Delivery + Totals */}
                 <div className="space-y-3">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-surface-muted mb-1.5">Delivery Address</p>
-                    <p className="text-xs text-surface-secondary">{order.address}</p>
-                    <p className="text-xs text-surface-muted">{order.city}</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-surface-muted mb-1.5">Delivery Address</p>
+                      <p className="text-xs text-surface-secondary">{order.address}</p>
+                      <p className="text-xs text-surface-muted">{order.city}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-surface-muted mb-1.5">Customer Info</p>
+                      <p className="text-xs text-surface-secondary">Phone: <span className="font-mono">{order.phone}</span></p>
+                      {getOrderEmail(order) && (
+                        <p className="text-xs text-surface-secondary mt-0.5">Email: <span className="font-mono text-brand break-all">{getOrderEmail(order)}</span></p>
+                      )}
+                    </div>
                   </div>
-                  {order.note && (
+                  {getCleanNote(order.note) && (
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-widest text-surface-muted mb-1">Note</p>
-                      <p className="text-xs text-surface-secondary italic">"{order.note}"</p>
+                      <p className="text-xs text-surface-secondary italic">"{getCleanNote(order.note)}"</p>
                     </div>
                   )}
                   <div className="pt-2 border-t border-base-300/40 space-y-1">
@@ -227,8 +256,16 @@ function OrderCard({ order, index, onStatusChange }) {
                 ))}
               </div>
 
+              {getOrderEmail(order) && (
+                <p className="text-[10px] text-brand/90 font-mono">Email: {getOrderEmail(order)}</p>
+              )}
+
               {order.address && (
                 <p className="text-[10px] text-surface-muted">{order.address}, {order.city}</p>
+              )}
+
+              {getCleanNote(order.note) && (
+                <p className="text-[10px] text-surface-muted italic">Note: "{getCleanNote(order.note)}"</p>
               )}
 
               {/* Status changer */}
