@@ -1,7 +1,7 @@
 // src/pages/admin/Orders.jsx
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Loader2, ShoppingBag, RefreshCw, ChevronDown, Phone, MapPin, Package, Edit2, Trash2, X, Save } from 'lucide-react';
+import { Search, Loader2, ShoppingBag, RefreshCw, ChevronDown, Phone, MapPin, Package, Edit2, Trash2, X, Save, Printer } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 const formatPrice = (p) => `৳${Number(p).toLocaleString('en-BD')}`;
@@ -39,7 +39,7 @@ function formatDate(ts) {
 }
 
 /* Expandable order row for desktop */
-function OrderRow({ order, index, onStatusChange, onEditClick, onDeleteClick, deletingId }) {
+function OrderRow({ order, index, onStatusChange, onEditClick, onDeleteClick, onPrintClick, deletingId }) {
   const [expanded, setExpanded] = useState(false);
   const [updating, setUpdating] = useState(false);
   const s = statusConfig[order.status] || statusConfig.pending;
@@ -176,6 +176,16 @@ function OrderRow({ order, index, onStatusChange, onEditClick, onDeleteClick, de
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        onPrintClick(order);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/30 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500 hover:text-white transition-all duration-200 text-[10px] font-bold"
+                    >
+                      <Printer size={11} />
+                      Print Invoice
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
                         onEditClick(order);
                       }}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-brand/30 text-brand bg-brand/5 hover:bg-brand hover:text-white transition-all duration-200 text-[10px] font-bold"
@@ -215,7 +225,7 @@ function OrderRow({ order, index, onStatusChange, onEditClick, onDeleteClick, de
 }
 
 /* Mobile order card */
-function OrderCard({ order, index, onStatusChange, onEditClick, onDeleteClick, deletingId }) {
+function OrderCard({ order, index, onStatusChange, onEditClick, onDeleteClick, onPrintClick, deletingId }) {
   const [expanded, setExpanded] = useState(false);
   const [updating, setUpdating] = useState(false);
   const s = statusConfig[order.status] || statusConfig.pending;
@@ -318,6 +328,16 @@ function OrderCard({ order, index, onStatusChange, onEditClick, onDeleteClick, d
 
               {/* Action Bar */}
               <div className="flex items-center gap-2 pt-2.5 border-t border-base-300/50">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPrintClick(order);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border border-emerald-500/30 text-emerald-400 bg-emerald-500/5 hover:bg-emerald-500 hover:text-white transition-all duration-200 text-[10px] font-bold"
+                >
+                  <Printer size={11} />
+                  Print
+                </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -515,6 +535,259 @@ export default function AdminOrders() {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status: newStatus } : o));
   };
 
+  const handlePrintInvoice = (order) => {
+    const printWindow = window.open('', '_blank', 'width=800,height=900');
+    if (!printWindow) {
+      alert("Please allow popups to print invoices.");
+      return;
+    }
+    
+    const orderDate = new Date(order.created_at || Date.now()).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
+    const items = Array.isArray(order.items) ? order.items : [];
+    const formatTk = (val) => `Tk ${Number(val).toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const orderNum = order.order_number || `#${order.id}`;
+    const cleanAddr = order.address || '';
+    const cleanCity = order.city || '';
+
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Invoice - ${orderNum}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 15mm;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #000;
+      margin: 0;
+      padding: 20px;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 25px;
+    }
+    .header h1 {
+      font-size: 28px;
+      font-weight: 800;
+      margin: 0;
+      letter-spacing: -0.5px;
+    }
+    .header-meta {
+      text-align: right;
+    }
+    .header-meta .order-num {
+      font-size: 13px;
+      font-weight: bold;
+      margin: 0;
+    }
+    .header-meta .date {
+      color: #333;
+      font-size: 11px;
+      margin-top: 3px;
+    }
+    .addresses {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr 1.2fr;
+      gap: 24px;
+      margin-bottom: 30px;
+    }
+    .address-col h3 {
+      font-size: 11px;
+      font-weight: bold;
+      margin: 0 0 6px 0;
+      text-transform: capitalize;
+    }
+    .address-col p {
+      margin: 0;
+      color: #000;
+      white-space: pre-wrap;
+    }
+    hr {
+      border: none;
+      border-top: 1.5px solid #000;
+      margin: 0 0 20px 0;
+    }
+    .section-title {
+      font-size: 12px;
+      font-weight: bold;
+      margin: 0 0 10px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+    }
+    th, td {
+      padding: 8px 10px;
+      text-align: left;
+      border-bottom: 0.5px solid #ddd;
+    }
+    th {
+      font-weight: bold;
+      border-top: 0.5px solid #000;
+      border-bottom: 0.5px solid #000;
+      text-transform: capitalize;
+    }
+    .align-right {
+      text-align: right;
+    }
+    .align-center {
+      text-align: center;
+    }
+    
+    .totals-container {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 10px;
+    }
+    .totals-table {
+      width: 320px;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    .totals-table td {
+      padding: 6px 10px;
+      border-bottom: 0.5px solid #eee;
+    }
+    .totals-table tr.total-row td {
+      border-top: 1px solid #000;
+      border-bottom: 1.5px solid #000;
+      font-weight: bold;
+    }
+    .totals-table tr.outstanding-row td {
+      border-bottom: 2px double #000;
+      font-weight: bold;
+    }
+    .footer {
+      margin-top: 40px;
+      font-size: 10px;
+      color: #000;
+      border-top: 0.5px solid #ddd;
+      padding-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Invoice</h1>
+    <div class="header-meta">
+      <p class="order-num">${orderNum.startsWith('Order #') ? orderNum : `Order #${orderNum}`}</p>
+      <p class="date">${orderDate}</p>
+    </div>
+  </div>
+
+  <div class="addresses">
+    <div class="address-col">
+      <h3>From</h3>
+      <p><strong>Rust & Revive</strong></p>
+      <p>205, New Paltan Line, Azimpur</p>
+      <p>Dhaka 1205</p>
+      <p>Bangladesh</p>
+      <p>+8801340185659</p>
+    </div>
+    
+    <div class="address-col">
+      <h3>Bill to</h3>
+      <p><strong>${order.name}</strong></p>
+      <p>${cleanAddr}</p>
+      <p>${cleanCity}</p>
+      <p>Bangladesh</p>
+    </div>
+    
+    <div class="address-col">
+      <h3>Ship to</h3>
+      <p><strong>${order.name}</strong></p>
+      <p>${cleanAddr}</p>
+      <p>${cleanCity}</p>
+      <p>Bangladesh</p>
+      <p>${order.phone}</p>
+    </div>
+  </div>
+
+  <hr />
+
+  <p class="section-title">Order Details</p>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 10%;">Qty</th>
+        <th style="width: 70%;">Item</th>
+        <th style="width: 20%;" class="align-right">Price</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${items.map(item => `
+        <tr>
+          <td>${item.quantity}</td>
+          <td>${item.name} ${item.size ? `- ${item.size}` : ''}</td>
+          <td class="align-right">${formatTk(item.price)}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+
+  <div class="totals-container">
+    <table class="totals-table">
+      <tbody>
+        <tr>
+          <td>Subtotal</td>
+          <td class="align-right">${formatTk(order.subtotal)}</td>
+        </tr>
+        <tr>
+          <td>Tax</td>
+          <td class="align-right">${formatTk(0)}</td>
+        </tr>
+        <tr>
+          <td>Shipping</td>
+          <td class="align-right">${formatTk(order.shipping)}</td>
+        </tr>
+        <tr class="total-row">
+          <td>Total</td>
+          <td class="align-right">${formatTk(order.total)}</td>
+        </tr>
+        <tr>
+          <td>Total Paid</td>
+          <td class="align-right">${formatTk(0)}</td>
+        </tr>
+        <tr class="outstanding-row">
+          <td>Outstanding Amount</td>
+          <td class="align-right" style="font-weight: 850;">${formatTk(order.total)}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    If you have any questions, please send an email to <strong>rustandrevive@gmail.com</strong>
+  </div>
+
+  <script>
+    window.onload = function() {
+      window.print();
+      setTimeout(function() { window.close(); }, 500);
+    };
+  </script>
+</body>
+</html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
   const handleDeleteOrder = async (id) => {
     if (!window.confirm("Are you sure you want to delete this order? This action cannot be undone.")) return;
     setDeletingId(id);
@@ -663,7 +936,7 @@ export default function AdminOrders() {
           {/* Mobile cards */}
           <div className="sm:hidden space-y-2">
             {filtered.map((order, i) => (
-              <OrderCard key={order.id} order={order} index={i} onStatusChange={handleStatusChange} onEditClick={setEditingOrder} onDeleteClick={handleDeleteOrder} deletingId={deletingId} />
+              <OrderCard key={order.id} order={order} index={i} onStatusChange={handleStatusChange} onEditClick={setEditingOrder} onDeleteClick={handleDeleteOrder} onPrintClick={handlePrintInvoice} deletingId={deletingId} />
             ))}
           </div>
 
@@ -685,7 +958,7 @@ export default function AdminOrders() {
                 </thead>
                 <tbody>
                   {filtered.map((order, i) => (
-                    <OrderRow key={order.id} order={order} index={i} onStatusChange={handleStatusChange} onEditClick={setEditingOrder} onDeleteClick={handleDeleteOrder} deletingId={deletingId} />
+                    <OrderRow key={order.id} order={order} index={i} onStatusChange={handleStatusChange} onEditClick={setEditingOrder} onDeleteClick={handleDeleteOrder} onPrintClick={handlePrintInvoice} deletingId={deletingId} />
                   ))}
                 </tbody>
               </table>
