@@ -1,7 +1,7 @@
 // src/pages/admin/Orders.jsx
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Loader2, ShoppingBag, RefreshCw, ChevronDown, Phone, MapPin, Package } from 'lucide-react';
+import { Search, Loader2, ShoppingBag, RefreshCw, ChevronDown, Phone, MapPin, Package, Edit2, Trash2, X, Save } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 const formatPrice = (p) => `৳${Number(p).toLocaleString('en-BD')}`;
@@ -39,7 +39,7 @@ function formatDate(ts) {
 }
 
 /* Expandable order row for desktop */
-function OrderRow({ order, index, onStatusChange }) {
+function OrderRow({ order, index, onStatusChange, onEditClick, onDeleteClick, deletingId }) {
   const [expanded, setExpanded] = useState(false);
   const [updating, setUpdating] = useState(false);
   const s = statusConfig[order.status] || statusConfig.pending;
@@ -171,6 +171,39 @@ function OrderRow({ order, index, onStatusChange }) {
                       <span className="text-brand">{formatPrice(order.total)}</span>
                     </div>
                   </div>
+                  {/* Action Bar */}
+                  <div className="flex items-center gap-2 pt-3 border-t border-base-300/40">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditClick(order);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-brand/30 text-brand bg-brand/5 hover:bg-brand hover:text-white transition-all duration-200 text-[10px] font-bold"
+                    >
+                      <Edit2 size={11} />
+                      Edit Details
+                    </button>
+                    <button
+                      disabled={deletingId === order.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteClick(order.id);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-500/30 text-red-400 bg-red-500/5 hover:bg-red-500 hover:text-white transition-all duration-200 text-[10px] font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {deletingId === order.id ? (
+                        <>
+                          <Loader2 size={11} className="animate-spin" />
+                          Deleting...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 size={11} />
+                          Delete Order
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </td>
@@ -182,7 +215,7 @@ function OrderRow({ order, index, onStatusChange }) {
 }
 
 /* Mobile order card */
-function OrderCard({ order, index, onStatusChange }) {
+function OrderCard({ order, index, onStatusChange, onEditClick, onDeleteClick, deletingId }) {
   const [expanded, setExpanded] = useState(false);
   const [updating, setUpdating] = useState(false);
   const s = statusConfig[order.status] || statusConfig.pending;
@@ -282,11 +315,169 @@ function OrderCard({ order, index, onStatusChange }) {
                   ))}
                 </select>
               </div>
+
+              {/* Action Bar */}
+              <div className="flex items-center gap-2 pt-2.5 border-t border-base-300/50">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditClick(order);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border border-brand/30 text-brand bg-brand/5 hover:bg-brand hover:text-white transition-all duration-200 text-[10px] font-bold"
+                >
+                  <Edit2 size={11} />
+                  Edit
+                </button>
+                <button
+                  disabled={deletingId === order.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteClick(order.id);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg border border-red-500/30 text-red-400 bg-red-500/5 hover:bg-red-500 hover:text-white transition-all duration-200 text-[10px] font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {deletingId === order.id ? (
+                    <>
+                      <Loader2 size={11} className="animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={11} />
+                      Delete
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
     </motion.div>
+  );
+}
+
+/* Edit Order Modal Component */
+function EditOrderModal({ order, onClose, onSave }) {
+  const [form, setForm] = useState({
+    name: order.name || '',
+    phone: order.phone || '',
+    email: getOrderEmail(order) || '',
+    city: order.city || '',
+    address: order.address || '',
+    note: getCleanNote(order.note) || '',
+    shipping: order.shipping || 0,
+    subtotal: order.subtotal || 0,
+  });
+  const [saving, setSaving] = useState(false);
+
+  const total = Number(form.subtotal) + Number(form.shipping);
+
+  const setField = (field) => (e) => setForm(p => ({ ...p, [field]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await onSave(order.id, form);
+      onClose();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
+      
+      {/* Modal Content */}
+      <div className="relative w-full max-w-lg glass-dark border border-base-300 rounded-2xl p-6 shadow-2xl z-10 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between pb-3 border-b border-base-300/40 mb-4">
+          <div>
+            <h3 className="font-black text-sm text-surface-primary uppercase tracking-wider flex items-center gap-1.5">
+              <Edit2 size={14} className="text-brand" />
+              Edit Order Details
+            </h3>
+            <p className="text-[10px] text-surface-muted font-mono mt-0.5">{order.order_number}</p>
+          </div>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-base-500/50 text-surface-secondary hover:text-surface-primary transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-[10px] uppercase tracking-wider font-bold text-surface-secondary block mb-1">Customer Name</label>
+              <input required type="text" className="input text-xs" value={form.name} onChange={setField('name')} />
+            </div>
+            <div>
+              <label className="text-[10px] uppercase tracking-wider font-bold text-surface-secondary block mb-1">Phone Number</label>
+              <input required type="text" className="input text-xs" value={form.phone} onChange={setField('phone')} />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] uppercase tracking-wider font-bold text-surface-secondary block mb-1">Email Address</label>
+            <input type="email" className="input text-xs" value={form.email} onChange={setField('email')} placeholder="customer@email.com" />
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-1">
+              <label className="text-[10px] uppercase tracking-wider font-bold text-surface-secondary block mb-1">City / District</label>
+              <input required type="text" className="input text-xs" value={form.city} onChange={setField('city')} />
+            </div>
+            <div>
+              <label className="text-[10px] uppercase tracking-wider font-bold text-surface-secondary block mb-1">Subtotal (৳)</label>
+              <input required type="number" min="0" className="input text-xs font-mono" value={form.subtotal} onChange={setField('subtotal')} />
+            </div>
+            <div>
+              <label className="text-[10px] uppercase tracking-wider font-bold text-surface-secondary block mb-1">Shipping (৳)</label>
+              <input required type="number" min="0" className="input text-xs font-mono" value={form.shipping} onChange={setField('shipping')} />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] uppercase tracking-wider font-bold text-surface-secondary block mb-1">Shipping Address</label>
+            <textarea required rows={2} className="input text-xs resize-none" value={form.address} onChange={setField('address')} />
+          </div>
+
+          <div>
+            <label className="text-[10px] uppercase tracking-wider font-bold text-surface-secondary block mb-1">Order Note</label>
+            <textarea rows={2} className="input text-xs resize-none" value={form.note} onChange={setField('note')} />
+          </div>
+
+          {/* Totals Preview */}
+          <div className="p-3.5 rounded-xl bg-base-950/80 border border-base-300/40 flex items-center justify-between text-xs font-black">
+            <span className="text-surface-secondary">Calculated Total</span>
+            <span className="text-brand text-sm">৳{total.toLocaleString('en-BD')}</span>
+          </div>
+
+          {/* Footer Actions */}
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-base-300/40">
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-xs font-bold bg-base-500/50 hover:bg-base-500 text-surface-primary transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={saving} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold bg-brand hover:bg-brand-400 text-white shadow-glow transition-all duration-200 disabled:opacity-50">
+              {saving ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save size={12} />
+                  Save Changes
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 
@@ -297,6 +488,9 @@ export default function AdminOrders() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState('All');
+
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -319,6 +513,65 @@ export default function AdminOrders() {
 
   const handleStatusChange = (id, newStatus) => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status: newStatus } : o));
+  };
+
+  const handleDeleteOrder = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this order? This action cannot be undone.")) return;
+    setDeletingId(id);
+    try {
+      const { error: dbError } = await supabase.from('orders').delete().eq('id', id);
+      if (dbError) throw dbError;
+      setOrders(prev => prev.filter(o => o.id !== id));
+    } catch (e) {
+      console.error(e);
+      alert("Failed to delete order: " + e.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleSaveOrder = async (id, updatedForm) => {
+    const payload = {
+      name: updatedForm.name.trim(),
+      phone: updatedForm.phone.trim(),
+      email: updatedForm.email.trim() || null,
+      city: updatedForm.city.trim(),
+      address: updatedForm.address.trim(),
+      note: updatedForm.note.trim() || null,
+      shipping: Number(updatedForm.shipping),
+      subtotal: Number(updatedForm.subtotal),
+      total: Number(updatedForm.subtotal) + Number(updatedForm.shipping),
+    };
+
+    let { error: dbError } = await supabase.from('orders').update(payload).eq('id', id);
+
+    // Fallback logic for missing email column:
+    if (dbError && (dbError.message?.toLowerCase().includes('email') || dbError.code === 'PGRST204')) {
+      console.warn('Orders table does not support email column. Retrying with email in notes...');
+      const fallbackPayload = { ...payload };
+      delete fallbackPayload.email;
+      fallbackPayload.note = `[Email: ${payload.email || ''}]` + (payload.note ? `\n${payload.note}` : '');
+      
+      const { error: retryError } = await supabase.from('orders').update(fallbackPayload).eq('id', id);
+      dbError = retryError;
+    }
+
+    if (dbError) {
+      alert("Failed to save changes: " + dbError.message);
+      throw new Error(dbError.message);
+    }
+
+    // Update local state:
+    setOrders(prev => prev.map(o => {
+      if (o.id === id) {
+        return {
+          ...o,
+          ...payload,
+          note: dbError ? `[Email: ${payload.email || ''}]` + (payload.note ? `\n${payload.note}` : '') : payload.note
+        };
+      }
+      return o;
+    }));
   };
 
   const filtered = orders.filter(o => {
@@ -410,7 +663,7 @@ export default function AdminOrders() {
           {/* Mobile cards */}
           <div className="sm:hidden space-y-2">
             {filtered.map((order, i) => (
-              <OrderCard key={order.id} order={order} index={i} onStatusChange={handleStatusChange} />
+              <OrderCard key={order.id} order={order} index={i} onStatusChange={handleStatusChange} onEditClick={setEditingOrder} onDeleteClick={handleDeleteOrder} deletingId={deletingId} />
             ))}
           </div>
 
@@ -432,13 +685,22 @@ export default function AdminOrders() {
                 </thead>
                 <tbody>
                   {filtered.map((order, i) => (
-                    <OrderRow key={order.id} order={order} index={i} onStatusChange={handleStatusChange} />
+                    <OrderRow key={order.id} order={order} index={i} onStatusChange={handleStatusChange} onEditClick={setEditingOrder} onDeleteClick={handleDeleteOrder} deletingId={deletingId} />
                   ))}
                 </tbody>
               </table>
             </div>
           </div>
         </>
+      )}
+
+      {/* Edit Order Modal */}
+      {editingOrder && (
+        <EditOrderModal
+          order={editingOrder}
+          onClose={() => setEditingOrder(null)}
+          onSave={handleSaveOrder}
+        />
       )}
     </div>
   );
