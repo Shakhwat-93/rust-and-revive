@@ -62,7 +62,7 @@ export async function deleteCategory(id) {
 
 // ==================== PRODUCTS ====================
 export async function getProducts(options = {}) {
-  let query = supabase.from('products').select('*');
+  let query = supabase.from('products').select('*, inventory:inventory_id(current_stock)');
 
   if (options.category && options.category !== 'all') {
     query = query.eq('category', options.category);
@@ -76,7 +76,7 @@ export async function getProducts(options = {}) {
 export async function getProductBySlug(slug) {
   const { data, error } = await supabase
     .from('products')
-    .select('*')
+    .select('*, inventory:inventory_id(current_stock)')
     .eq('slug', slug)
     .single();
   if (error) throw error;

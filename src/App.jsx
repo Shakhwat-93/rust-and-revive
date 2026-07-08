@@ -1,22 +1,13 @@
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
-import AdminSidebar from './components/admin/AdminSidebar';
-import AdminTopbar from './components/admin/AdminTopbar';
-import ProtectedRoute from './components/admin/ProtectedRoute';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
 import ProductDetail from './pages/ProductDetail';
 import Checkout from './pages/Checkout';
-import Dashboard from './pages/admin/Dashboard';
-import AdminProducts from './pages/admin/Products';
-import AdminCategories from './pages/admin/Categories';
-import AdminOrders from './pages/admin/Orders';
-import AdminCustomers from './pages/admin/Customers';
-import WebsitePages from './pages/admin/WebsitePages';
-import AdminLogin from './pages/admin/Login';
+import TrackOrder from './pages/TrackOrder';
 
 /* Frontend layout */
 function FrontendLayout() {
@@ -38,6 +29,7 @@ function FrontendLayout() {
               <Route path="/shop" element={<Shop />} />
               <Route path="/product/:slug" element={<ProductDetail />} />
               <Route path="/checkout" element={<Checkout />} />
+              <Route path="/track" element={<TrackOrder />} />
             </Routes>
           </motion.div>
         </AnimatePresence>
@@ -47,37 +39,39 @@ function FrontendLayout() {
   );
 }
 
-/* Admin layout */
-function AdminLayout() {
-  const [mobileSidebar, setMobileSidebar] = useState(false);
-  const location = useLocation();
+/* Redirection helper to decoupled admin sub-app */
+function AdminRedirect() {
+  useEffect(() => {
+    window.location.href = '/admin/';
+  }, []);
 
   return (
-    <div className="flex min-h-screen bg-base-900 relative overflow-x-hidden">
-      <AdminSidebar mobileOpen={mobileSidebar} onClose={() => setMobileSidebar(false)} />
-      <div className="flex-1 flex flex-col min-w-0 w-full">
-        <AdminTopbar onMenuClick={() => setMobileSidebar(!mobileSidebar)} />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-            >
-              <Routes location={location} key={location.pathname}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/products" element={<AdminProducts />} />
-                <Route path="/categories" element={<AdminCategories />} />
-                <Route path="/orders" element={<AdminOrders />} />
-                <Route path="/customers" element={<AdminCustomers />} />
-                <Route path="/website/pages" element={<WebsitePages />} />
-              </Routes>
-            </motion.div>
-          </AnimatePresence>
-        </main>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '100vh',
+      backgroundColor: '#0f172a',
+      color: '#ffffff',
+      fontFamily: 'Inter, system-ui, sans-serif'
+    }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+        <div style={{
+          width: 32,
+          height: 32,
+          borderRadius: '50%',
+          border: '3px solid rgba(255,255,255,0.1)',
+          borderTopColor: '#6366f1',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <p style={{ fontSize: '0.875rem', color: '#94a3b8' }}>Redirecting to OrderFlow Dashboard...</p>
       </div>
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
@@ -86,17 +80,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Admin Login Route (Unprotected, standalone layout) */}
-        <Route path="/admin/login" element={<AdminLogin />} />
-        {/* Admin protected routes */}
-        <Route
-          path="/admin/*"
-          element={
-            <ProtectedRoute>
-              <AdminLayout />
-            </ProtectedRoute>
-          }
-        />
+        {/* Admin redirection routes */}
+        <Route path="/admin" element={<AdminRedirect />} />
+        <Route path="/admin/*" element={<AdminRedirect />} />
         {/* Frontend routes */}
         <Route path="/*" element={<FrontendLayout />} />
       </Routes>

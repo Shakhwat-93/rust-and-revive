@@ -15,7 +15,7 @@ const footerLinks = {
     { label: 'Sizing Guide', to: '#' },
     { label: 'Shipping Info', to: '#' },
     { label: 'Returns & Exchanges', to: '#' },
-    { label: 'Track Order', to: '#' },
+    { label: 'Track Order', to: '/track' },
     { label: 'Contact Us', to: '#' },
   ],
   Brand: [

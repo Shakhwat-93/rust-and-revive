@@ -11,6 +11,7 @@ const navLinks = [
   { to: '/shop', label: 'Shop' },
   { to: '/shop?cat=hoodies', label: 'Hoodies' },
   { to: '/shop?cat=jackets', label: 'Jackets' },
+  { to: '/track', label: 'Track Order' },
 ];
 
 export default function Navbar() {

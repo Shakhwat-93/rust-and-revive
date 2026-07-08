@@ -77,13 +77,18 @@ export default function ProductDetail() {
   const longDesc = product.long_description || product.longDescription || product.description;
   const featuresList = Array.isArray(product.features) ? product.features : ['100% Premium Material', 'Custom Oversized Fit', 'Garment Washed'];
 
+  // Enforce inventory stock control
+  const inStock = product.inventory_id
+    ? (product.inventory?.current_stock > 0)
+    : (product.in_stock !== false);
+
   const productReviews = reviews.filter((r) => r.productId === product.id || r.productId === product.slug);
   const discount = originalPrice
     ? Math.round((1 - product.price / originalPrice) * 100)
     : null;
 
   const handleAddToCart = () => {
-    if (product.in_stock === false) return;
+    if (!inStock) return;
     if (!selectedSize && product.sizes?.length > 0) {
       setSizeError(true);
       setTimeout(() => setSizeError(false), 2000);
@@ -102,7 +107,7 @@ export default function ProductDetail() {
   };
 
   const handleBuyNow = () => {
-    if (product.in_stock === false) return;
+    if (!inStock) return;
     if (!selectedSize && product.sizes?.length > 0) {
       setSizeError(true);
       setTimeout(() => setSizeError(false), 2000);
@@ -179,7 +184,7 @@ export default function ProductDetail() {
                     -{discount}%
                   </span>
                 )}
-                {product.in_stock === false && (
+                {!inStock && (
                   <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-500 text-white animate-pulse">
                     STOCK OUT
                   </span>
@@ -254,7 +259,7 @@ export default function ProductDetail() {
                   ))}
                 </div>
                 <span className="text-small text-surface-secondary">{rating} ({reviewsCount} reviews)</span>
-                {product.in_stock ? (
+                {inStock ? (
                   <span className="badge-success">In Stock</span>
                 ) : (
                   <span className="badge-danger font-bold">Sold Out</span>
@@ -336,17 +341,17 @@ export default function ProductDetail() {
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="flex flex-col sm:flex-row gap-3">
               {/* Add to Cart */}
               <button
-                disabled={product.in_stock === false}
+                disabled={!inStock}
                 onClick={handleAddToCart}
                 className={`flex-1 flex items-center justify-center gap-2.5 py-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all duration-300 border-2 ${
-                  product.in_stock === false
+                  !inStock
                     ? 'border-base-300 text-surface-muted bg-base-600/20 cursor-not-allowed'
                     : added
                     ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
                     : 'border-brand text-brand hover:bg-brand hover:text-white shadow-glow-sm'
                 }`}
               >
-                {product.in_stock === false ? (
+                {!inStock ? (
                   'Stock Out'
                 ) : added ? (
                   <>
@@ -365,10 +370,10 @@ export default function ProductDetail() {
 
               {/* Buy Now */}
               <button
-                disabled={product.in_stock === false}
+                disabled={!inStock}
                 onClick={handleBuyNow}
                 className={`flex-1 flex items-center justify-center gap-2.5 py-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all duration-300 shadow-glow hover:shadow-glow-lg ${
-                  product.in_stock === false
+                  !inStock
                     ? 'bg-base-600 text-surface-muted cursor-not-allowed border border-base-300'
                     : 'bg-brand text-white hover:bg-brand-400'
                 }`}
@@ -617,23 +622,23 @@ export default function ProductDetail() {
           {/* Actions */}
           <div className="flex gap-2 shrink-0">
             <button
-              disabled={product.in_stock === false}
+              disabled={!inStock}
               onClick={handleAddToCart}
               className={`px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 border-2 ${
-                product.in_stock === false
+                !inStock
                   ? 'border-base-300 text-surface-muted bg-base-600/10 cursor-not-allowed'
                   : added
                   ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
                   : 'border-brand text-brand hover:bg-brand hover:text-white'
               }`}
             >
-              {product.in_stock === false ? 'Out' : added ? 'Added' : 'Add'}
+              {!inStock ? 'Out' : added ? 'Added' : 'Add'}
             </button>
             <button
-              disabled={product.in_stock === false}
+              disabled={!inStock}
               onClick={handleBuyNow}
               className={`flex items-center gap-1 px-4 py-2.5 rounded-lg text-xs font-bold transition-all duration-300 ${
-                product.in_stock === false
+                !inStock
                   ? 'bg-base-600 text-surface-muted cursor-not-allowed'
                   : 'bg-brand text-white shadow-glow-sm'
               }`}

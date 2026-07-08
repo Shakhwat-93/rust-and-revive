@@ -1,7 +1,34 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  return {
+    plugins: [react()],
+    server: {
+      port: 5173,
+      proxy: {
+        '/api/pathao': {
+          target: env.VITE_PATHAO_BASE_URL || 'https://courier-api-sandbox.pathao.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/pathao/, ''),
+        },
+        '/admin': {
+          target: 'http://localhost:5174',
+          changeOrigin: true,
+          bypass: (req, res) => {
+            const [pathname] = req.url.split('?');
+            if (pathname === '/admin') {
+              const query = req.url.slice(pathname.length);
+              res.writeHead(301, { Location: '/admin/' + query });
+              res.end();
+              return false;
+            }
+          }
+        },
+      },
+    },
+  };
 })
+

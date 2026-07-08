@@ -16,9 +16,14 @@ export default function ProductCard({ product, index = 0 }) {
   const reviewsCount = product.reviews_count || product.reviews || 0;
   const rating = product.rating || 5.0;
 
+  const inStock = product.inventory_id
+    ? (product.inventory?.current_stock > 0)
+    : (product.in_stock !== false);
+
   const handleQuickAdd = async (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!inStock) return;
     const defaultSize = product.sizes?.[1] || product.sizes?.[0] || 'M';
     setAdding(true);
     addItem(product, defaultSize, 1);
@@ -43,8 +48,7 @@ export default function ProductCard({ product, index = 0 }) {
       className="group"
     >
       <Link to={`/product/${product.slug}`} className="block">
-        {/* Image Container */}
-        <div className="relative overflow-hidden rounded-xl bg-base-600 aspect-[3/4]">
+        <div className="relative aspect-[3/4] rounded-2xl bg-base-900 overflow-hidden border border-base-400/30 group-hover:border-base-400/80 transition-all duration-300">
           {/* Product Image */}
           <motion.img
             src={product.image}
@@ -61,18 +65,16 @@ export default function ProductCard({ product, index = 0 }) {
             className="absolute inset-0 bg-gradient-to-t from-brand/10 via-transparent to-transparent pointer-events-none"
           />
 
-          {/* Badges */}
-          <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+          {/* Badge */}
+          <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 items-start">
             {product.badge && (
               <span
-                className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                  product.badge === 'SALE'
-                    ? 'bg-red-500/90 text-white'
-                    : product.badge === 'LIMITED'
-                    ? 'bg-brand/90 text-white'
-                    : product.badge === 'NEW DROP'
-                    ? 'bg-emerald-500/90 text-white'
-                    : 'bg-base-400/90 text-surface-primary'
+                className={`px-2.5 py-1 rounded-full text-[10px] font-black tracking-wider uppercase ${
+                  product.badge === 'BESTSELLER'
+                    ? 'bg-brand text-white'
+                    : product.badge === 'NEW DROP' ? 'bg-emerald-500 text-white' :
+                    product.badge === 'SALE' ? 'bg-red-500 text-white' :
+                    'bg-base-400/90 text-surface-primary'
                 }`}
               >
                 {product.badge}
@@ -83,8 +85,8 @@ export default function ProductCard({ product, index = 0 }) {
                 -{discount}%
               </span>
             )}
-            {product.in_stock === false && (
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-500/90 text-white">
+            {!inStock && (
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-500/90 text-white animate-pulse">
                 STOCK OUT
               </span>
             )}
@@ -94,6 +96,7 @@ export default function ProductCard({ product, index = 0 }) {
           <button
             onClick={(e) => {
               e.preventDefault();
+              e.stopPropagation();
               setLiked(!liked);
             }}
             className="absolute top-3 right-3 w-8 h-8 rounded-full glass flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200"
@@ -107,7 +110,7 @@ export default function ProductCard({ product, index = 0 }) {
           </button>
 
           {/* Quick Add */}
-          {product.in_stock !== false && (
+          {inStock && (
             <motion.div
               initial={{ y: 12, opacity: 0 }}
               animate={{ y: hovered ? 0 : 12, opacity: hovered ? 1 : 0 }}

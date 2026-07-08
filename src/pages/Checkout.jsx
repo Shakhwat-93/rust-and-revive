@@ -317,14 +317,13 @@ export default function Checkout() {
     const num = generateOrderNumber();
 
     const orderPayload = {
-      order_number: num,
-      name: form.name.trim(),
+      id: num,
+      customer_name: form.name.trim(),
       phone: form.phone.trim(),
-      email: form.email.trim(),
-      address: form.address.trim(),
-      city: form.city.trim(),
-      note: form.note.trim() || null,
-      items: items.map(i => ({
+      email: form.email.trim() || null,
+      address: `${form.address.trim()}, ${form.city.trim()}`,
+      notes: form.note.trim() || null,
+      ordered_items: items.map(i => ({
         id: i.product.id,
         name: i.product.name,
         slug: i.product.slug,
@@ -334,11 +333,15 @@ export default function Checkout() {
         quantity: i.quantity,
         line_total: i.product.price * i.quantity,
       })),
-      subtotal,
-      shipping,
-      total,
-      status: 'pending',
-      payment_method: 'cod',
+      amount: total,
+      items: items.reduce((sum, i) => sum + i.quantity, 0),
+      product_name: items[0]?.product.name || '',
+      size: items[0]?.size || '',
+      quantity: items[0]?.quantity || 1,
+      shipping_zone: shippingArea === 'inside' ? 'Inside Dhaka' : 'Outside Dhaka',
+      source: 'Website',
+      status: 'New',
+      payment_status: 'Unpaid',
     };
 
     try {
@@ -349,7 +352,7 @@ export default function Checkout() {
         console.warn('Orders table does not support email column. Retrying with email in notes...');
         const fallbackPayload = { ...orderPayload };
         delete fallbackPayload.email;
-        fallbackPayload.note = `[Email: ${orderPayload.email}]` + (orderPayload.note ? `\nNote: ${orderPayload.note}` : '');
+        fallbackPayload.notes = `[Email: ${orderPayload.email}]` + (orderPayload.notes ? `\nNote: ${orderPayload.notes}` : '');
         
         const { error: retryError } = await supabase.from('orders').insert([fallbackPayload]);
         dbError = retryError;
@@ -361,6 +364,36 @@ export default function Checkout() {
 
       // Snapshot items BEFORE clearing cart so success screen can show them
       const orderedItems = [...items];
+
+      // Decrement inventory stock for items linked to inventory
+      for (const item of orderedItems) {
+        if (item.product.inventory_id) {
+          try {
+            const { error: adjustErr } = await supabase.rpc('adjust_inventory_stock', {
+              item_id: item.product.inventory_id,
+              qty_change: -item.quantity
+            });
+            if (adjustErr) {
+              console.warn('adjust_inventory_stock RPC failed. Falling back to direct update...', adjustErr);
+              const { data: invItem } = await supabase
+                .from('inventory')
+                .select('current_stock')
+                .eq('id', item.product.inventory_id)
+                .single();
+              if (invItem) {
+                const newStock = Math.max(0, (invItem.current_stock || 0) - item.quantity);
+                await supabase
+                  .from('inventory')
+                  .update({ current_stock: newStock })
+                  .eq('id', item.product.inventory_id);
+              }
+            }
+          } catch (e) {
+            console.error('Failed to decrement stock for item:', item.product.id, e);
+          }
+        }
+      }
+
       setOrderNumber(num);
       clearCart();
       setOrderedItems(orderedItems);
