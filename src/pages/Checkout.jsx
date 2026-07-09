@@ -24,6 +24,50 @@ function generateOrderNumber() {
   return `RR-${now}-${rand}`;
 }
 
+// Get Client IP Address with timeout & fallback API
+async function getClientIp() {
+  try {
+    const res = await Promise.race([
+      fetch('https://api.ipify.org?format=json').then(r => r.json()),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2500))
+    ]);
+    if (res?.ip) return res.ip;
+  } catch (e) {
+    console.warn('[IP Capture] Primary API failed:', e);
+  }
+
+  try {
+    const res2 = await Promise.race([
+      fetch('https://ipapi.co/json/').then(r => r.json()),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 2500))
+    ]);
+    if (res2?.ip) return res2.ip;
+  } catch (e) {
+    console.warn('[IP Capture] Fallback API failed:', e);
+  }
+
+  return null;
+}
+
+// Get traffic source/UTM medium from URL or referrer
+function getTrafficSource() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const utm = params.get('utm_source') || params.get('source') || params.get('ref');
+    if (utm) return utm;
+
+    const referrer = document.referrer;
+    if (referrer) {
+      if (referrer.includes('facebook.com') || referrer.includes('fb.me')) return 'Facebook';
+      if (referrer.includes('instagram.com')) return 'Instagram';
+      if (referrer.includes('tiktok.com')) return 'TikTok';
+      if (referrer.includes('google.com')) return 'Google';
+      return new URL(referrer).hostname;
+    }
+  } catch {}
+  return 'Direct';
+}
+
 /* ─── Order Summary Sidebar ─────────────────────────────────────────────── */
 function OrderSummary({ items, subtotal, shipping, total }) {
   return (
@@ -316,6 +360,57 @@ export default function Checkout() {
 
     const num = generateOrderNumber();
 
+    // 1. IP Capture & Traffic Source
+    const ipAddress = await getClientIp();
+    const trafficSource = getTrafficSource();
+
+    // 2. Blocked IP Addresses Guard (Fake Order Protection)
+    if (ipAddress) {
+      try {
+        const { data: blockedIpData } = await supabase
+          .from('blocked_ip_addresses')
+          .select('ip_address, reason')
+          .eq('ip_address', ipAddress)
+          .eq('is_active', true)
+          .maybeSingle();
+
+        if (blockedIpData) {
+          setError('Your IP address has been restricted from placing orders due to suspicious activity. Please contact support.');
+          setSubmitting(false);
+          return;
+        }
+      } catch (ipCheckErr) {
+        console.warn('Failed to verify IP blocklist:', ipCheckErr);
+      }
+    }
+
+    // 3. Duplicate Order Check (Spam Prevention)
+    try {
+      const cleanPhone = form.phone.trim();
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
+      let duplicateQuery = supabase
+        .from('orders')
+        .select('id, created_at')
+        .gte('created_at', fiveMinutesAgo);
+
+      if (ipAddress) {
+        duplicateQuery = duplicateQuery.or(`phone.eq.${cleanPhone},ip_address.eq.${ipAddress}`);
+      } else {
+        duplicateQuery = duplicateQuery.eq('phone', cleanPhone);
+      }
+
+      const { data: recentOrders } = await duplicateQuery;
+
+      if (recentOrders && recentOrders.length > 0) {
+        setError('A similar order has already been placed recently. Please wait a few minutes before trying again.');
+        setSubmitting(false);
+        return;
+      }
+    } catch (dupCheckErr) {
+      console.warn('Failed to verify duplicate orders:', dupCheckErr);
+    }
+
     const orderPayload = {
       id: num,
       customer_name: form.name.trim(),
@@ -342,6 +437,8 @@ export default function Checkout() {
       source: 'Website',
       status: 'New',
       payment_status: 'Unpaid',
+      ip_address: ipAddress,
+      traffic_source: trafficSource,
     };
 
     try {
