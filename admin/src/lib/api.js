@@ -2963,19 +2963,48 @@ export const api = {
     const itemQty = items.reduce((sum, i) => sum + (Number(i.quantity) || 1), 0);
     const itemDesc = items.map(i => `${i.name} (${i.size || 'Free Size'}${i.color && i.color !== 'None' ? `, Color: ${i.color}` : ''})`).join(', ');
 
+    // Normalize recipient phone (must be exactly 11 digits for Pathao)
+    let recipientPhone = (order.phone || '').trim().replace(/\D/g, '');
+    if (recipientPhone.startsWith('880') && recipientPhone.length === 13) {
+      recipientPhone = recipientPhone.slice(2);
+    }
+    if (recipientPhone.length === 10 && recipientPhone.startsWith('1')) {
+      recipientPhone = '0' + recipientPhone;
+    }
+
+    // Normalize recipient address (must be between 10 and 220 chars for Pathao)
+    let recipientAddress = (order.address || '').trim();
+    if (recipientAddress.length < 10) {
+      recipientAddress = recipientAddress 
+        ? `${recipientAddress}, Dhaka, Bangladesh`
+        : 'Dhaka, Bangladesh';
+    }
+    if (recipientAddress.length > 220) {
+      recipientAddress = recipientAddress.slice(0, 217) + '...';
+    }
+
+    // Normalize recipient name (must be between 3 and 100 chars for Pathao)
+    let recipientName = (order.customer_name || 'Customer').trim();
+    if (recipientName.length < 3) {
+      recipientName = recipientName + ' customer';
+    }
+    if (recipientName.length > 100) {
+      recipientName = recipientName.slice(0, 97) + '...';
+    }
+
     const payload = {
       store_id: Number(config.store_id) || null,
       merchant_order_id: String(order.id),
-      recipient_name: order.customer_name || 'Customer',
-      recipient_phone: order.phone,
-      recipient_address: order.address || 'Address not provided',
+      recipient_name: recipientName,
+      recipient_phone: recipientPhone,
+      recipient_address: recipientAddress,
       delivery_type: 48,
       item_type: 2,
       special_instruction: order.notes || '',
       item_quantity: itemQty || 1,
       item_weight: 0.5,
       item_description: itemDesc || 'Clothing Items',
-      amount_to_collect: Number(order.amount) || 0
+      amount_to_collect: Math.round(Number(order.amount)) || 0
     };
 
     const submitRes = await fetch('/api/pathao/aladdin/api/v1/orders', {

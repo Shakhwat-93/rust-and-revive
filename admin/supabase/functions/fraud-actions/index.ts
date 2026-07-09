@@ -26,14 +26,18 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
+    const othersUrl = "https://gmgofzqlxbzfzvlzdiqy.supabase.co";
+    const othersAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdtZ29menFseGJ6Znp2bHpkaXF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0Mjk4MzksImV4cCI6MjA5OTAwNTgzOX0.wdZHG1MRQNg635V9ToVmRQ_Nh7KHgTnLs1tN2jkuaSs";
+    const othersSupabaseClient = createClient(othersUrl, othersAnonKey);
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header");
 
     const token = authHeader.replace("Bearer ", "").trim();
-    const { data: { user: caller }, error: callerError } = await supabaseAdmin.auth.getUser(token);
+    const { data: { user: caller }, error: callerError } = await othersSupabaseClient.auth.getUser(token);
     if (callerError || !caller) throw new Error("Invalid caller");
 
-    const { data: rolesData, error: rolesError } = await supabaseAdmin
+    const { data: rolesData, error: rolesError } = await othersSupabaseClient
       .from("user_roles")
       .select("role_id")
       .eq("user_id", caller.id);

@@ -28,10 +28,20 @@ export const supabase = new Proxy({}, {
   get(target, prop) {
     if (prop === 'from') {
       return (tableName) => {
-        if (['orders', 'order_activity_logs', 'courier_ratio_cache', 'blocked_ip_addresses', 'retained_cancelled_ips'].includes(tableName)) {
+        if (['orders', 'order_activity_logs', 'courier_ratio_cache', 'blocked_ip_addresses', 'retained_cancelled_ips', 'system_configs'].includes(tableName)) {
           return supabaseOrders.from(tableName);
         }
         return supabaseOthers.from(tableName);
+      };
+    }
+    if (prop === 'functions') {
+      return {
+        invoke: (functionName, options) => {
+          if (functionName === 'admin-auth-actions') {
+            return supabaseOthers.functions.invoke(functionName, options);
+          }
+          return supabaseOrders.functions.invoke(functionName, options);
+        }
       };
     }
     const value = supabaseOthers[prop];
