@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import api from '../lib/api';
+import { convertToWebP } from '../utils/image';
 
 const AuthContext = createContext({});
 
@@ -298,13 +299,14 @@ export const AuthProvider = ({ children }) => {
   const uploadAvatar = async (file) => {
     if (!user) return;
 
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+    // Convert avatar file to WebP client-side
+    const webpFile = await convertToWebP(file);
+    const fileName = `${user.id}-${Math.random()}.webp`;
     const filePath = `${user.id}/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from('avatars')
-      .upload(filePath, file);
+      .upload(filePath, webpFile);
 
     if (uploadError) throw uploadError;
 

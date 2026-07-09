@@ -1,7 +1,8 @@
 // admin/src/pages/StorefrontManagement.jsx
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { 
+import { convertToWebP } from '../utils/image';
+import {
   Package, 
   Layers, 
   Sliders, 
@@ -28,13 +29,15 @@ const ImageUploadInput = ({ label, value, onChange, placeholder, required = fals
   const [uploading, setUploading] = useState(false);
 
   const handleUpload = async (e) => {
-    const file = e.target.files?.[0];
+    let file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+      // Auto convert to WebP client-side
+      file = await convertToWebP(file);
+
+      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.webp`;
       const filePath = `${fileName}`;
 
       const { data, error } = await supabase.storage
@@ -127,9 +130,12 @@ const MultipleImageUploadInput = ({ label, value = [], onChange }) => {
     try {
       const uploadedUrls = [];
       for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+        let file = files[i];
+        
+        // Auto convert to WebP client-side
+        file = await convertToWebP(file);
+
+        const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.webp`;
         const filePath = `${fileName}`;
 
         const { data, error } = await supabase.storage

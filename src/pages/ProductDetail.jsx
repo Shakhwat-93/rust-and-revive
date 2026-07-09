@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -73,6 +73,51 @@ export default function ProductDetail() {
     );
   }
 
+  const images = Array.isArray(product.images) && product.images.length > 0 ? product.images : [product.image];
+  const sliderRef = useRef(null);
+  
+  const handleScroll = (e) => {
+    const width = e.currentTarget.offsetWidth;
+    if (width <= 0) return;
+    const scrollLeft = e.currentTarget.scrollLeft;
+    const page = Math.round(scrollLeft / width);
+    if (page !== activeImg && page >= 0 && page < images.length) {
+      setActiveImg(page);
+    }
+  };
+
+  const handleThumbnailClick = (index) => {
+    setActiveImg(index);
+    if (sliderRef.current) {
+      const width = sliderRef.current.offsetWidth;
+      sliderRef.current.scrollTo({
+        left: width * index,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  // Auto-slide on desktop view (screens >= 1024px)
+  useEffect(() => {
+    if (images.length <= 1) return;
+
+    const interval = setInterval(() => {
+      if (window.innerWidth >= 1024) {
+        const nextIndex = (activeImg + 1) % images.length;
+        setActiveImg(nextIndex);
+        if (sliderRef.current) {
+          const width = sliderRef.current.offsetWidth;
+          sliderRef.current.scrollTo({
+            left: width * nextIndex,
+            behavior: 'smooth'
+          });
+        }
+      }
+    }, 4500);
+
+    return () => clearInterval(interval);
+  }, [activeImg, images.length]);
+
   const originalPrice = product.original_price || product.originalPrice;
   const reviewsCount = product.reviews_count || product.reviews || 0;
   const rating = product.rating || 5.0;
@@ -134,7 +179,7 @@ export default function ProductDetail() {
     navigate('/checkout');
   };
 
-  const images = Array.isArray(product.images) && product.images.length > 0 ? product.images : [product.image];
+
 
   // ─── Extract Size Guide Multi-Column Data ───
   const sizeGuide = product.size_guide;
@@ -164,28 +209,47 @@ export default function ProductDetail() {
       <div className="container-site py-8">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16">
 
-          {/* ─── Image Gallery ─── */}
+          {/* ─── Image Gallery Slider ─── */}
           <div className="space-y-4">
-            {/* Main Image */}
-            <motion.div
-              className="relative overflow-hidden rounded-2xl bg-base-600 aspect-square border border-base-300"
-              layoutId={`product-img-${product.id}`}
-            >
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={activeImg}
-                  src={images[activeImg]}
-                  alt={product.name}
-                  initial={{ opacity: 0, scale: 1.05 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="w-full h-full object-cover"
-                />
-              </AnimatePresence>
+            {/* Main Image Slider */}
+            <div className="relative w-full rounded-2xl bg-base-950/20 border border-base-300 overflow-hidden flex items-center justify-center">
+              {/* Swiper Container */}
+              <div 
+                ref={sliderRef}
+                onScroll={handleScroll}
+                className="w-full flex overflow-x-auto snap-x snap-mandatory scroll-smooth scrollbar-none"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {images.map((img, i) => (
+                  <div 
+                    key={i} 
+                    className="w-full flex-shrink-0 snap-start flex items-center justify-center p-2"
+                  >
+                    <img
+                      src={img}
+                      alt={`${product.name} - ${i + 1}`}
+                      className="w-full h-auto max-h-[70vh] object-contain rounded-xl select-none"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Dots / Pagination indicator for mobile/desktop slider */}
+              {images.length > 1 && (
+                <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5 z-10 pointer-events-none">
+                  {images.map((_, i) => (
+                    <span
+                      key={i}
+                      className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                        activeImg === i ? 'bg-brand w-4' : 'bg-white/40'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
 
               {/* Badges */}
-              <div className="absolute top-4 left-4 flex flex-col gap-2">
+              <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
                 {product.badge && (
                   <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
                     product.badge === 'LIMITED' ? 'bg-brand text-white' :
@@ -211,22 +275,22 @@ export default function ProductDetail() {
               {/* Wishlist */}
               <button
                 onClick={() => setLiked(!liked)}
-                className="absolute top-4 right-4 w-10 h-10 rounded-full glass flex items-center justify-center hover:border-red-400/50 transition-colors"
+                className="absolute top-4 right-4 w-10 h-10 rounded-full glass flex items-center justify-center hover:border-red-400/50 transition-colors z-10"
               >
                 <Heart
                   size={16}
                   className={`transition-colors ${liked ? 'fill-red-400 text-red-400' : 'text-surface-secondary'}`}
                 />
               </button>
-            </motion.div>
+            </div>
 
             {/* Thumbnails */}
             {images.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-2">
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
                 {images.map((img, i) => (
                   <button
                     key={i}
-                    onClick={() => setActiveImg(i)}
+                    onClick={() => handleThumbnailClick(i)}
                     className={`w-20 h-20 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-all duration-200 ${
                       activeImg === i ? 'border-brand shadow-glow-sm' : 'border-transparent opacity-60 hover:opacity-100'
                     }`}

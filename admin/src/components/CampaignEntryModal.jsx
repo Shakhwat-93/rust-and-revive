@@ -7,6 +7,7 @@ import {
   TrendingUp, TrendingDown, BarChart2, Package
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { convertToWebP } from '../utils/image';
 import { useOrders } from '../context/OrderContext';
 import './CampaignEntryModal.css';
 
@@ -161,14 +162,18 @@ export const CampaignEntryModal = ({ isOpen, onClose, onSave, initialData = null
     const urls = [];
     for (const img of images) {
       if (img.url) { urls.push(img.url); continue; }
-      const ext  = img.file.name.split('.').pop();
-      const path = `campaign-reports/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { data, error } = await supabase.storage
-        .from('campaign-images')
-        .upload(path, img.file, { cacheControl: '3600', upsert: false });
-      if (error) { console.warn('Upload failed:', error.message); continue; }
-      const { data: { publicUrl } } = supabase.storage.from('campaign-images').getPublicUrl(data.path);
-      urls.push(publicUrl);
+      try {
+        const webpFile = await convertToWebP(img.file);
+        const path = `campaign-reports/${Date.now()}-${Math.random().toString(36).slice(2)}.webp`;
+        const { data, error } = await supabase.storage
+          .from('campaign-images')
+          .upload(path, webpFile, { cacheControl: '3600', upsert: false });
+        if (error) { console.warn('Upload failed:', error.message); continue; }
+        const { data: { publicUrl } } = supabase.storage.from('campaign-images').getPublicUrl(data.path);
+        urls.push(publicUrl);
+      } catch (err) {
+        console.warn('WebP conversion or upload failed:', err.message);
+      }
     }
     return urls;
   };
