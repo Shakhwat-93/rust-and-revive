@@ -400,15 +400,14 @@ export default function ProductDetail() {
               <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
                 <div className="flex items-center justify-between mb-3">
                   <p className="font-semibold text-small">Select Size</p>
-                  {product.size_guide && (
-                    <button
-                      onClick={() => setSizeGuideOpen(true)}
-                      className="text-xs font-bold text-brand hover:text-brand-400 transition-colors flex items-center gap-1.5 glass-brand px-3 py-1.5 rounded-lg"
-                    >
-                      <Ruler size={14} />
-                      <span>Size Chart & Fit Guide</span>
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setSizeGuideOpen(true)}
+                    className="text-xs font-bold text-brand hover:text-brand-400 transition-all flex items-center gap-1.5 bg-brand/5 border border-brand/40 px-4 py-2 rounded-full hover:bg-brand/10 active:scale-95 duration-200 cursor-pointer shadow-glow-sm"
+                  >
+                    <Ruler size={13} className="text-brand shrink-0" />
+                    <span>Size Chart & Fit Guide</span>
+                  </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {product.sizes.map((size) => (
