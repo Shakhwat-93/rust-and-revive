@@ -1557,7 +1557,10 @@ export const api = {
             if (updatedVariants.length > 0) {
               await supabase
                 .from('inventory')
-                .update({ current_stock: totalStock })
+                .update({ 
+                  current_stock: totalStock,
+                  variants: updatedVariants
+                })
                 .eq('id', product.inventory_id);
             } else {
               // Direct increment/decrement if no variants

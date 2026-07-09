@@ -81,10 +81,132 @@ export const InventoryPage = () => {
   const [toyBoxInitialStock, setToyBoxInitialStock] = useState(0);
   const [toyBoxProductName, setToyBoxProductName] = useState('');
 
+  const [sizesInput, setSizesInput] = useState('S, M, L, XL');
+  const [colorsInput, setColorsInput] = useState('Black, White, Grey');
+
   const [formData, setFormData] = useState({
     name: '', sku: '', category: 'Other', current_stock: 0, min_stock_level: 5,
-    unit_price: 0, selling_price: 0, making_cost: 0, supports_serial_tracking: false
+    unit_price: 0, selling_price: 0, making_cost: 0, supports_serial_tracking: false,
+    variants: []
   });
+
+  const handleVariantChange = (index, field, value) => {
+    const updated = formData.variants.map((v, i) => {
+      if (i === index) return { ...v, [field]: value };
+      return v;
+    });
+    setFormData({ ...formData, variants: updated });
+  };
+
+  const removeVariantRow = (index) => {
+    const updated = formData.variants.filter((_, i) => i !== index);
+    setFormData({ ...formData, variants: updated });
+  };
+
+  const addVariantRow = () => {
+    const baseSku = (formData.sku || 'ITEM').toUpperCase();
+    const newVariant = {
+      size: '',
+      color: '',
+      sku: `${baseSku}-VAR-${formData.variants.length + 1}`,
+      stock: 10
+    };
+    setFormData({ ...formData, variants: [...formData.variants, newVariant] });
+  };
+
+  const generateVariantCombinations = () => {
+    const sizeList = sizesInput.split(',').map(s => s.trim()).filter(Boolean);
+    const colorList = colorsInput.split(',').map(c => c.trim()).filter(Boolean);
+    
+    if (sizeList.length === 0 && colorList.length === 0) {
+      alert('Please enter some Sizes or Colors to generate combinations.');
+      return;
+    }
+
+    const combinations = [];
+    const baseSku = (formData.sku || formData.name.toLowerCase().replace(/\s+/g, '-')).toUpperCase();
+    
+    if (sizeList.length > 0 && colorList.length > 0) {
+      sizeList.forEach(sz => {
+        colorList.forEach(cl => {
+          combinations.push({
+            size: sz,
+            color: cl,
+            sku: `${baseSku}-${sz.toUpperCase()}-${cl.toUpperCase()}`,
+            stock: 10
+          });
+        });
+      });
+    } else if (sizeList.length > 0) {
+      sizeList.forEach(sz => {
+        combinations.push({
+          size: sz,
+          color: '',
+          sku: `${baseSku}-${sz.toUpperCase()}`,
+          stock: 10
+        });
+      });
+    } else {
+      colorList.forEach(cl => {
+        combinations.push({
+          size: '',
+          color: cl,
+          sku: `${baseSku}-${cl.toUpperCase()}`,
+          stock: 10
+        });
+      });
+    }
+
+    setFormData({ ...formData, variants: combinations });
+  };
+
+  const handleOpenProductModal = (product = null) => {
+    setSizesInput('S, M, L, XL');
+    setColorsInput('Black, White, Grey');
+    if (product) {
+      setEditingProduct(product);
+      setFormData({
+        name: product.name,
+        sku: product.sku || '',
+        category: product.category || 'Other',
+        current_stock: product.current_stock,
+        min_stock_level: product.min_stock_level,
+        unit_price: product.unit_price,
+        selling_price: Number(product.selling_price) || Number(product.unit_price) || 0,
+        making_cost: Number(product.making_cost) || 0,
+        supports_serial_tracking: Boolean(product.supports_serial_tracking ?? (product.category === 'TOY BOX')),
+        variants: Array.isArray(product.variants) ? product.variants : []
+      });
+    } else {
+      setEditingProduct(null);
+      setFormData({
+        name: '', sku: '', category: 'Other', current_stock: 0, min_stock_level: 5,
+        unit_price: 0, selling_price: 0, making_cost: 0, supports_serial_tracking: false,
+        variants: []
+      });
+    }
+    setIsProductModalOpen(true);
+  };
+
+  const handleSaveProduct = async (e) => {
+    e.preventDefault();
+    const hasVariants = formData.variants && formData.variants.length > 0;
+    const finalStock = hasVariants
+      ? formData.variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)
+      : formData.current_stock;
+      
+    const payload = {
+      ...formData,
+      current_stock: finalStock
+    };
+
+    if (editingProduct) {
+      await updateInventoryItem(editingProduct.id, payload);
+    } else {
+      await addInventoryItem(payload);
+    }
+    setIsProductModalOpen(false);
+  };
 
   const serialTrackedProducts = getSerialTrackedProducts(inventory);
   const toyBoxGroups = (toyBoxes || []).reduce((acc, item) => {
@@ -107,38 +229,6 @@ export const InventoryPage = () => {
 
   const lowStockItems = inventory.filter(item => item.current_stock <= item.min_stock_level);
   const outOfStockItems = inventory.filter(item => item.current_stock === 0);
-
-  const handleOpenProductModal = (product = null) => {
-    if (product) {
-      setEditingProduct(product);
-      setFormData({
-        name: product.name,
-        sku: product.sku || '',
-        category: product.category || 'Other',
-        current_stock: product.current_stock,
-        min_stock_level: product.min_stock_level,
-        unit_price: product.unit_price,
-        // selling_price falls back to unit_price for legacy records
-        selling_price: Number(product.selling_price) || Number(product.unit_price) || 0,
-        making_cost: Number(product.making_cost) || 0,
-        supports_serial_tracking: Boolean(product.supports_serial_tracking ?? (product.category === 'TOY BOX'))
-      });
-    } else {
-      setEditingProduct(null);
-      setFormData({ name: '', sku: '', category: 'Other', current_stock: 0, min_stock_level: 5, unit_price: 0, selling_price: 0, making_cost: 0, supports_serial_tracking: false });
-    }
-    setIsProductModalOpen(true);
-  };
-
-  const handleSaveProduct = async (e) => {
-    e.preventDefault();
-    if (editingProduct) {
-      await updateInventoryItem(editingProduct.id, formData);
-    } else {
-      await addInventoryItem(formData);
-    }
-    setIsProductModalOpen(false);
-  };
 
   const handleOpenAdjustModal = (product) => {
     setAdjustingProduct(product);
@@ -433,6 +523,26 @@ export const InventoryPage = () => {
                         <div className="product-meta">
                           <span className="product-name">{item.name}</span>
                           <span className="product-sku">{item.sku || 'No SKU'}</span>
+                          {Array.isArray(item.variants) && item.variants.length > 0 && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                              {item.variants.map((v, i) => (
+                                <span 
+                                  key={i} 
+                                  style={{ 
+                                    fontSize: '9px', 
+                                    padding: '2px 6px', 
+                                    borderRadius: '4px', 
+                                    backgroundColor: 'rgba(255,255,255,0.03)', 
+                                    border: '1px solid rgba(255,255,255,0.05)', 
+                                    color: 'var(--st-text-secondary)',
+                                    fontFamily: 'monospace'
+                                  }}
+                                >
+                                  {v.size || '—'}/{v.color || '—'}: <b>{v.stock}</b>
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -617,8 +727,19 @@ export const InventoryPage = () => {
               <p>Set quantity thresholds, selling price, and production cost for profit tracking.</p>
             </div>
             <div className="form-grid">
-              <Input label="Initial Inventory" type="number" value={formData.current_stock} onChange={(e) => setFormData({ ...formData, current_stock: parseInt(e.target.value) })} required />
-              <Input label="Min Alert Level" type="number" value={formData.min_stock_level} onChange={(e) => setFormData({ ...formData, min_stock_level: parseInt(e.target.value) })} required />
+              <Input
+                label="Initial Inventory"
+                type="number"
+                value={formData.variants?.length > 0
+                  ? formData.variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)
+                  : formData.current_stock
+                }
+                onChange={(e) => setFormData({ ...formData, current_stock: parseInt(e.target.value) || 0 })}
+                required
+                disabled={formData.variants?.length > 0}
+                hint={formData.variants?.length > 0 ? "Calculated from variants stock below" : null}
+              />
+              <Input label="Min Alert Level" type="number" value={formData.min_stock_level} onChange={(e) => setFormData({ ...formData, min_stock_level: parseInt(e.target.value) || 0 })} required />
             </div>
             <div className="form-grid">
               <Input
@@ -657,6 +778,130 @@ export const InventoryPage = () => {
                 </div>
               );
             })()}
+          </section>
+
+          {/* Product Variations Section */}
+          <section className="inventory-form-section" style={{ borderTop: '1px solid var(--st-border)', paddingTop: '20px' }}>
+            <div className="inventory-form-section-head">
+              <span className="section-kicker">Product Variations</span>
+              <p>Define size and color variants with specific stock. If variations are added, total stock calculates automatically.</p>
+            </div>
+            
+            {/* Bulk Generator Box */}
+            <div style={{ backgroundColor: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid var(--st-border)', marginBottom: '16px' }}>
+              <span style={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--st-brand)', display: 'block', marginBottom: '12px' }}>Bulk Variation Generator</span>
+              <div className="form-grid" style={{ gap: '12px', marginBottom: '12px' }}>
+                <div>
+                  <label className="input-label" style={{ fontSize: '10px' }}>Sizes (comma separated)</label>
+                  <input
+                    type="text"
+                    className="st-input"
+                    style={{ padding: '8px 12px', fontSize: '12px' }}
+                    placeholder="S, M, L, XL"
+                    value={sizesInput}
+                    onChange={(e) => setSizesInput(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="input-label" style={{ fontSize: '10px' }}>Colors (comma separated)</label>
+                  <input
+                    type="text"
+                    className="st-input"
+                    style={{ padding: '8px 12px', fontSize: '12px' }}
+                    placeholder="Black, White, Grey"
+                    value={colorsInput}
+                    onChange={(e) => setColorsInput(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Button type="button" variant="ghost" size="sm" onClick={generateVariantCombinations}>
+                  Generate Combinations
+                </Button>
+              </div>
+            </div>
+
+            {/* Variations List */}
+            {(!formData.variants || formData.variants.length === 0) ? (
+              <div style={{ textAlign: 'center', padding: '24px 0', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '8px' }}>
+                <p style={{ fontSize: '12px', color: 'var(--st-text-secondary)' }}>No variations added yet. Click Generate or Add Row to start.</p>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto', maxHeight: '240px', overflowY: 'auto', borderRadius: '8px', border: '1px solid var(--st-border)', backgroundColor: 'rgba(0,0,0,0.1)', padding: '8px' }}>
+                <table style={{ width: '100%', textAlign: 'left', fontSize: '12px', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', color: 'var(--st-text-secondary)', textTransform: 'uppercase', fontFamily: 'monospace', letterSpacing: '0.05em' }}>
+                      <th style={{ paddingBottom: '8px', paddingRight: '8px', fontWeight: '500' }}>Size</th>
+                      <th style={{ paddingBottom: '8px', paddingLeft: '8px', paddingRight: '8px', fontWeight: '500' }}>Color</th>
+                      <th style={{ paddingBottom: '8px', paddingLeft: '8px', paddingRight: '8px', fontWeight: '500' }}>SKU</th>
+                      <th style={{ paddingBottom: '8px', paddingLeft: '8px', paddingRight: '8px', fontWeight: '500' }}>Stock</th>
+                      <th style={{ paddingBottom: '8px', paddingLeft: '8px', fontWeight: '500', textAlign: 'right' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {formData.variants.map((v, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <td style={{ padding: '6px 8px 6px 0' }}>
+                          <input 
+                            type="text"
+                            className="st-input"
+                            style={{ padding: '4px 8px', fontSize: '12px', width: '100%' }}
+                            placeholder="e.g. S"
+                            value={v.size || ''}
+                            onChange={(e) => handleVariantChange(idx, 'size', e.target.value)}
+                          />
+                        </td>
+                        <td style={{ padding: '6px 8px' }}>
+                          <input 
+                            type="text"
+                            className="st-input"
+                            style={{ padding: '4px 8px', fontSize: '12px', width: '100%' }}
+                            placeholder="e.g. Black"
+                            value={v.color || ''}
+                            onChange={(e) => handleVariantChange(idx, 'color', e.target.value)}
+                          />
+                        </td>
+                        <td style={{ padding: '6px 8px' }}>
+                          <input 
+                            type="text"
+                            className="st-input"
+                            style={{ padding: '4px 8px', fontSize: '12px', width: '100%', fontFamily: 'monospace' }}
+                            placeholder="SKU"
+                            value={v.sku || ''}
+                            onChange={(e) => handleVariantChange(idx, 'sku', e.target.value)}
+                          />
+                        </td>
+                        <td style={{ padding: '6px 8px', width: '90px' }}>
+                          <input 
+                            type="number"
+                            className="st-input"
+                            style={{ padding: '4px 8px', fontSize: '12px', width: '100%' }}
+                            placeholder="0"
+                            value={v.stock}
+                            onChange={(e) => handleVariantChange(idx, 'stock', Number(e.target.value) || 0)}
+                          />
+                        </td>
+                        <td style={{ padding: '6px 0 6px 8px', textAlign: 'right' }}>
+                          <button 
+                            type="button"
+                            onClick={() => removeVariantRow(idx)}
+                            style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '8px' }}>
+              <Button type="button" variant="ghost" size="sm" onClick={addVariantRow}>
+                + Add Row
+              </Button>
+            </div>
           </section>
 
           <label className="feature-toggle-row">

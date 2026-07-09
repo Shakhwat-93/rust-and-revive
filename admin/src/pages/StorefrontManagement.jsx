@@ -588,7 +588,7 @@ export const StorefrontManagement = () => {
       // Fetch Inventory
       const { data: invData, error: invErr } = await supabase
         .from('inventory')
-        .select('id, name, sku, current_stock')
+        .select('id, name, sku, current_stock, variants')
         .order('name', { ascending: true });
       if (invErr) throw invErr;
       setInventoryItems(invData || []);
@@ -759,6 +759,35 @@ export const StorefrontManagement = () => {
   const removeVariantRow = (index) => {
     const updated = prodForm.variants.filter((_, i) => i !== index);
     setProdForm({ ...prodForm, variants: updated });
+  };
+
+  const syncVariantsFromInventory = (invId) => {
+    if (!invId) return;
+    const invItem = inventoryItems.find(i => i.id === invId);
+    if (!invItem) return;
+    
+    const invVariants = Array.isArray(invItem.variants) ? invItem.variants : [];
+    if (invVariants.length === 0) {
+      alert('The selected inventory item does not have any variants defined.');
+      return;
+    }
+
+    // Extract unique sizes and colors
+    const uniqueSizes = [...new Set(invVariants.map(v => v.size).filter(Boolean))].join(', ');
+    const uniqueColors = [...new Set(invVariants.map(v => v.color).filter(Boolean))].join(', ');
+
+    setProdForm(prev => ({
+      ...prev,
+      inventory_id: invId,
+      variants: invVariants.map(v => ({
+        size: v.size || '',
+        color: v.color || '',
+        sku: v.sku || '',
+        stock: Number(v.stock) || 0
+      })),
+      sizes: uniqueSizes,
+      colors: uniqueColors
+    }));
   };
 
   const addVariantRow = () => {
@@ -1453,6 +1482,15 @@ export const StorefrontManagement = () => {
                     </option>
                   ))}
                 </select>
+                {prodForm.inventory_id && (
+                  <button
+                    type="button"
+                    onClick={() => syncVariantsFromInventory(prodForm.inventory_id)}
+                    className="text-xs text-brand hover:text-brand-400 font-bold mt-2.5 flex items-center gap-1.5 cursor-pointer bg-brand/10 hover:bg-brand/20 px-3 py-1.5 rounded-lg border border-brand/20 transition-all"
+                  >
+                    🔄 Import Variations from Linked Inventory
+                  </button>
+                )}
               </div>
 
               <div className="sf-form-group">
