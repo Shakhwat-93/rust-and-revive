@@ -12,9 +12,20 @@ const useCartStore = create(
       closeCart: () => set({ isOpen: false }),
       toggleCart: () => set(state => ({ isOpen: !state.isOpen })),
 
-      addItem: (product, size, quantity = 1) => {
+      addItem: (product, size, colorOrQty = null, qtyOrUndefined = 1) => {
         const { items } = get();
-        const key = `${product.id}-${size}`;
+        
+        let color = null;
+        let quantity = 1;
+        
+        if (typeof colorOrQty === 'number') {
+          quantity = colorOrQty;
+        } else {
+          color = colorOrQty;
+          quantity = qtyOrUndefined ?? 1;
+        }
+
+        const key = `${product.id}-${size}-${color || 'None'}`;
         const existing = items.find(i => i.key === key);
 
         if (existing) {
@@ -25,7 +36,7 @@ const useCartStore = create(
           });
         } else {
           set({
-            items: [...items, { key, product, size, quantity }],
+            items: [...items, { key, product, size, color, quantity }],
           });
         }
       },

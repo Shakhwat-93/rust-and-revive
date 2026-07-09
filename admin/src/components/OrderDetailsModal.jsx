@@ -743,7 +743,16 @@ export const OrderDetailsModal = ({ isOpen, onClose, order, onEdit }) => {
                           <span className="name">{item.name}</span>
                           {item.toyBoxNumber && <span className="box-tag">Box #{item.toyBoxNumber}</span>}
                         </div>
-                        {item.size && <div className="product-meta-detail">Size: <span className="highlight">{item.size}</span></div>}
+                        {item.size && (
+                          <div className="product-meta-detail">
+                            Size: <span className="highlight">{item.size}</span>
+                            {item.color && item.color !== 'None' && (
+                              <span style={{ marginLeft: '12px' }}>
+                                Color: <span className="highlight">{item.color}</span>
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="product-price-column">
                         <div className="unit-price">@<CurrencyIcon size={10} className="currency-icon-elite" />{Number(item.price || 0).toLocaleString()}</div>
@@ -758,7 +767,16 @@ export const OrderDetailsModal = ({ isOpen, onClose, order, onEdit }) => {
                       <div className="product-name-row">
                         <span className="name">{order.product_name}</span>
                       </div>
-                      {order.size && <div className="product-meta-detail">Size: <span className="highlight">{order.size}</span></div>}
+                      {order.size && (
+                        <div className="product-meta-detail">
+                          Size: <span className="highlight">{order.size}</span>
+                          {order.color && order.color !== 'None' && (
+                            <span style={{ marginLeft: '12px' }}>
+                              Color: <span className="highlight">{order.color}</span>
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="product-price-column">
                       <div className="total-price">

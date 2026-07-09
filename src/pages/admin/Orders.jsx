@@ -127,7 +127,9 @@ function OrderRow({ order, index, onStatusChange, onEditClick, onDeleteClick, on
                         )}
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-bold text-surface-primary line-clamp-1">{item.name}</p>
-                          <p className="text-[10px] text-surface-muted">Size: {item.size} · Qty: {item.quantity}</p>
+                          <p className="text-[10px] text-surface-muted">
+                            Size: {item.size}{item.color && item.color !== 'None' ? ` · Color: ${item.color}` : ''} · Qty: {item.quantity}
+                          </p>
                         </div>
                         <span className="text-xs font-black text-brand flex-shrink-0">{formatPrice(item.line_total)}</span>
                       </div>
@@ -292,7 +294,9 @@ function OrderCard({ order, index, onStatusChange, onEditClick, onDeleteClick, o
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="text-[10px] font-bold text-surface-primary line-clamp-1">{item.name}</p>
-                      <p className="text-[9px] text-surface-muted">Sz {item.size} · ×{item.quantity}</p>
+                      <p className="text-[9px] text-surface-muted">
+                        Sz {item.size}{item.color && item.color !== 'None' ? ` · Clr ${item.color}` : ''} · ×{item.quantity}
+                      </p>
                     </div>
                     <span className="text-[10px] font-black text-brand">{formatPrice(item.line_total)}</span>
                   </div>

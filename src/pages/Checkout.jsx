@@ -88,7 +88,9 @@ function OrderSummary({ items, subtotal, shipping, total }) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-surface-primary line-clamp-2">{item.product.name}</p>
-              <p className="text-[10px] text-surface-muted mt-0.5">Size: {item.size}</p>
+              <p className="text-[10px] text-surface-muted mt-0.5">
+                Size: {item.size}{item.color && item.color !== 'None' ? ` / Color: ${item.color}` : ''}
+              </p>
             </div>
             <span className="text-sm font-black text-surface-primary flex-shrink-0">
               {formatPrice(item.product.price * item.quantity)}
@@ -232,7 +234,9 @@ function SuccessScreen({ orderNumber, items, total, onContinue }) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-bold text-surface-primary line-clamp-1">{item.product.name}</p>
-                    <p className="text-[11px] text-surface-muted mt-0.5">Size {item.size} · ×{item.quantity}</p>
+                    <p className="text-[11px] text-surface-muted mt-0.5">
+                      Size {item.size}{item.color && item.color !== 'None' ? ` · Color ${item.color}` : ''} · ×{item.quantity}
+                    </p>
                   </div>
                   <span className="text-xs font-black text-surface-primary flex-shrink-0">
                     {formatPrice(item.product.price * item.quantity)}
@@ -425,6 +429,7 @@ export default function Checkout() {
         image: i.product.image,
         price: i.product.price,
         size: i.size,
+        color: i.color || null,
         quantity: i.quantity,
         line_total: i.product.price * i.quantity,
       })),
@@ -478,8 +483,8 @@ export default function Checkout() {
 
             if (updatedVariants.length > 0) {
               updatedVariants = updatedVariants.map(v => {
-                const sizeMatch = !v.size || String(v.size).trim().toLowerCase() === String(item.selectedSize || '').trim().toLowerCase();
-                const colorMatch = !v.color || String(v.color).trim().toLowerCase() === String(item.selectedColor || '').trim().toLowerCase();
+                const sizeMatch = !v.size || String(v.size).trim().toLowerCase() === String(item.size || '').trim().toLowerCase();
+                const colorMatch = !v.color || String(v.color).trim().toLowerCase() === String(item.color || '').trim().toLowerCase();
                 if (sizeMatch && colorMatch) {
                   variantFound = true;
                   const newQty = Math.max(0, (Number(v.stock) || 0) - item.quantity);

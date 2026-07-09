@@ -22,6 +22,7 @@ export default function ProductDetail() {
 
   const [activeImg, setActiveImg] = useState(0);
   const [selectedSize, setSelectedSize] = useState(null);
+  const [selectedColor, setSelectedColor] = useState(null);
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
   const [liked, setLiked] = useState(false);
@@ -38,6 +39,7 @@ export default function ProductDetail() {
         const prod = await getProductBySlug(slug);
         setProduct(prod);
         setSelectedSize(prod?.sizes?.[0] || null);
+        setSelectedColor(prod?.colors?.[0] || null);
 
         if (prod?.category) {
           const rel = await getProducts({ category: prod.category });
@@ -110,7 +112,7 @@ export default function ProductDetail() {
       return;
     }
     setAdding(true);
-    addItem(product, selectedSize || 'One Size', 1);
+    addItem(product, selectedSize || 'One Size', selectedColor || 'None', 1);
     setTimeout(() => {
       setAdding(false);
       setAdded(true);
@@ -128,7 +130,7 @@ export default function ProductDetail() {
       setTimeout(() => setSizeError(false), 2000);
       return;
     }
-    addItem(product, selectedSize || 'One Size', 1);
+    addItem(product, selectedSize || 'One Size', selectedColor || 'None', 1);
     navigate('/checkout');
   };
 
@@ -303,6 +305,31 @@ export default function ProductDetail() {
             </motion.div>
 
             <div className="divider" />
+
+            {/* Color Selector */}
+            {product.colors?.length > 0 && (
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="mb-5">
+                <p className="font-semibold text-small mb-3">Select Color</p>
+                <div className="flex flex-wrap gap-2.5">
+                  {product.colors.map((color) => {
+                    const isSelected = selectedColor === color;
+                    return (
+                      <button
+                        key={color}
+                        onClick={() => setSelectedColor(color)}
+                        className={`px-4 py-2 rounded-lg border font-semibold text-xs transition-all duration-200 ${
+                          isSelected
+                            ? 'border-brand bg-brand text-white shadow-glow-sm'
+                            : 'border-base-300 text-surface-secondary hover:border-brand/50 hover:text-surface-primary'
+                        }`}
+                      >
+                        {color}
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
 
             {/* Size Selector */}
             {product.sizes?.length > 0 && (

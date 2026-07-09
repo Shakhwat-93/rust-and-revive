@@ -100,7 +100,9 @@ export default function CartDrawer() {
                         >
                           {item.product.name}
                         </Link>
-                        <p className="text-xs text-surface-muted mt-0.5">Size: {item.size}</p>
+                        <p className="text-xs text-surface-muted mt-0.5">
+                          Size: {item.size}{item.color && item.color !== 'None' && item.color !== 'None' ? ` / Color: ${item.color}` : ''}
+                        </p>
                         <p className="text-brand font-semibold text-small mt-1">
                           {formatPrice(item.product.price)}
                         </p>
