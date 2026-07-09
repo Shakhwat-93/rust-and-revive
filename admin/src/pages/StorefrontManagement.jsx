@@ -320,6 +320,184 @@ const MultipleImageUploadInput = ({ label, value = [], onChange }) => {
   );
 };
 
+// Interactive Size Guide (Size Chart) Editor Table Component
+const SizeGuideTableEditor = ({ value, onChange }) => {
+  const columns = value?.columns || ['Size', 'Waist', 'Hips', 'Length'];
+  const rows = value?.rows || [];
+  const material = value?.material || 'Cotton 100%';
+
+  const [newColName, setNewColName] = useState('');
+
+  const addColumn = () => {
+    if (!newColName.trim()) return;
+    const name = newColName.trim();
+    if (columns.includes(name)) {
+      alert('Column already exists!');
+      return;
+    }
+    const updatedCols = [...columns, name];
+    const updatedRows = rows.map(row => ({ ...row, [name]: '' }));
+    onChange({ columns: updatedCols, rows: updatedRows, material });
+    setNewColName('');
+  };
+
+  const removeColumn = (colName) => {
+    if (colName === 'Size') {
+      alert('The "Size" column cannot be removed as it is the primary identifier.');
+      return;
+    }
+    if (!confirm(`Are you sure you want to remove the column "${colName}"?`)) return;
+    const updatedCols = columns.filter(c => c !== colName);
+    const updatedRows = rows.map(row => {
+      const copy = { ...row };
+      delete copy[colName];
+      return copy;
+    });
+    onChange({ columns: updatedCols, rows: updatedRows, material });
+  };
+
+  const addRow = () => {
+    const newRow = {};
+    columns.forEach(col => {
+      newRow[col] = '';
+    });
+    onChange({ columns, rows: [...rows, newRow], material });
+  };
+
+  const removeRow = (index) => {
+    const updatedRows = rows.filter((_, idx) => idx !== index);
+    onChange({ columns, rows: updatedRows, material });
+  };
+
+  const handleCellChange = (rowIndex, colName, val) => {
+    const updatedRows = [...rows];
+    updatedRows[rowIndex] = { ...updatedRows[rowIndex], [colName]: val };
+    onChange({ columns, rows: updatedRows, material });
+  };
+
+  const handleMaterialChange = (val) => {
+    onChange({ columns, rows, material: val });
+  };
+
+  return (
+    <div className="sf-form-group full-width" style={{ marginTop: '16px', borderTop: '1px solid var(--glass-border)', paddingTop: '20px', gridColumn: '1 / -1' }}>
+      <label className="sf-label" style={{ fontSize: '13px', color: 'var(--accent)', marginBottom: '8px', display: 'block' }}>Size Chart Builder</label>
+      
+      {/* Material/Composition field */}
+      <div className="sf-form-group" style={{ marginBottom: '16px', maxWidth: '300px' }}>
+        <label className="sf-label" style={{ fontSize: '10px' }}>Material / Composition</label>
+        <input 
+          type="text" 
+          className="sf-input" 
+          value={material} 
+          onChange={(e) => handleMaterialChange(e.target.value)}
+          placeholder="e.g. Cotton 100%"
+        />
+      </div>
+
+      {/* Add new Column form */}
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap' }}>
+        <input 
+          type="text" 
+          className="sf-input" 
+          style={{ width: '180px', padding: '6px 12px', fontSize: '12px' }}
+          placeholder="New Column (e.g. Rise)"
+          value={newColName}
+          onChange={(e) => setNewColName(e.target.value)}
+        />
+        <button 
+          type="button" 
+          className="action-btn-green"
+          onClick={addColumn}
+          style={{ padding: '6px 16px', fontSize: '12px', borderRadius: '4px', height: 'auto', boxShadow: 'none' }}
+        >
+          + Add Column
+        </button>
+      </div>
+
+      {/* Size Chart Table Grid */}
+      <div style={{ overflowX: 'auto', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--glass-border)', borderRadius: '8px', padding: '4px', marginBottom: '12px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'center' }}>
+          <thead>
+            <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid var(--glass-border)' }}>
+              {columns.map((col) => (
+                <th key={col} style={{ padding: '10px 8px', fontWeight: 800, color: 'var(--text-secondary)', position: 'relative' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                    <span>{col}</span>
+                    {col !== 'Size' && (
+                      <button 
+                        type="button" 
+                        onClick={() => removeColumn(col)}
+                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '10px', padding: '0 4px' }}
+                        title="Remove Column"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </th>
+              ))}
+              <th style={{ width: '50px' }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, rIdx) => (
+              <tr key={rIdx} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                {columns.map((col) => (
+                  <td key={col} style={{ padding: '6px' }}>
+                    <input 
+                      type="text" 
+                      className="sf-input" 
+                      style={{ 
+                        width: '100%', 
+                        padding: '6px', 
+                        textAlign: 'center', 
+                        fontSize: '12px', 
+                        background: col === 'Size' ? 'rgba(13, 148, 136, 0.05)' : 'transparent',
+                        borderColor: col === 'Size' ? 'rgba(13, 148, 136, 0.2)' : 'var(--glass-border)',
+                        color: col === 'Size' ? 'var(--accent)' : 'inherit',
+                        fontWeight: col === 'Size' ? 800 : 'normal'
+                      }}
+                      value={row[col] || ''} 
+                      onChange={(e) => handleCellChange(rIdx, col, e.target.value)}
+                      placeholder="—"
+                    />
+                  </td>
+                ))}
+                <td style={{ padding: '6px' }}>
+                  <button 
+                    type="button"
+                    onClick={() => removeRow(rIdx)}
+                    style={{ background: 'rgba(239,68,68,0.15)', border: 'none', color: '#ef4444', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px' }}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={columns.length + 1} style={{ padding: '20px', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
+                  No size guide rows added yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <button 
+        type="button" 
+        className="action-btn-green"
+        onClick={addRow}
+        style={{ padding: '8px 20px', fontSize: '12px', borderRadius: '4px', height: 'auto', boxShadow: 'none' }}
+      >
+        + Add Size Row
+      </button>
+    </div>
+  );
+};
+
 const defaultHome = {
   heroBgImage: "/images/hero-banner.webp",
   heroBadge: "New Season Drop",
@@ -462,6 +640,11 @@ export const StorefrontManagement = () => {
   const openProductModal = (product = null) => {
     if (product) {
       setEditingProduct(product);
+      const defaultSizeGuide = {
+        columns: ['Size', 'Waist', 'Hips', 'Length', 'Leg Opening', 'Rise'],
+        rows: [],
+        material: 'Cotton 100%'
+      };
       setProdForm({
         name: product.name || '',
         slug: product.slug || '',
@@ -471,6 +654,7 @@ export const StorefrontManagement = () => {
         badge: product.badge || '',
         image: product.image || '',
         images: Array.isArray(product.images) ? product.images : [],
+        size_guide: product.size_guide && typeof product.size_guide === 'object' && Array.isArray(product.size_guide.columns) ? product.size_guide : defaultSizeGuide,
         description: product.description || '',
         long_description: product.long_description || '',
         in_stock: product.in_stock !== false,
@@ -479,10 +663,15 @@ export const StorefrontManagement = () => {
         inventory_id: product.inventory_id || ''
       });
     } else {
+      const defaultSizeGuide = {
+        columns: ['Size', 'Waist', 'Hips', 'Length', 'Leg Opening', 'Rise'],
+        rows: [],
+        material: 'Cotton 100%'
+      };
       setEditingProduct(null);
       setProdForm({
         name: '', slug: '', category: categories[0]?.slug || '', price: '', original_price: '',
-        badge: '', image: '', images: [], description: '', long_description: '',
+        badge: '', image: '', images: [], size_guide: defaultSizeGuide, description: '', long_description: '',
         in_stock: true, sizes: 'S, M, L, XL', colors: 'Black, White', inventory_id: ''
       });
     }
@@ -526,6 +715,7 @@ export const StorefrontManagement = () => {
       badge: prodForm.badge || null,
       image: prodForm.image,
       images: prodForm.images,
+      size_guide: prodForm.size_guide,
       description: prodForm.description,
       long_description: prodForm.long_description,
       in_stock: prodForm.in_stock,
@@ -1214,6 +1404,11 @@ export const StorefrontManagement = () => {
                 label="Product Additional Images"
                 value={prodForm.images || []}
                 onChange={(urls) => setProdForm({ ...prodForm, images: urls })}
+              />
+
+              <SizeGuideTableEditor
+                value={prodForm.size_guide}
+                onChange={(guide) => setProdForm({ ...prodForm, size_guide: guide })}
               />
 
               <div className="sf-form-group">
