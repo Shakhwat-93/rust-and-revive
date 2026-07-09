@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, ShoppingBag, Heart, Star, Check, ChevronDown,
-  Shield, Truck, RotateCcw, Zap, ArrowRight, X, Ruler, Loader2, Layers
+  Zap, ArrowRight, X, Ruler, Loader2, Layers
 } from 'lucide-react';
 import { getProductBySlug, getProducts } from '../lib/api';
 import { reviews } from '../data/products';
@@ -398,20 +398,33 @@ export default function ProductDetail() {
               </button>
             </motion.div>
 
-            {/* Trust Badges */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }} className="grid grid-cols-3 gap-3">
-              {[
-                { icon: Truck, label: 'Free Delivery', sub: 'Dhaka metro' },
-                { icon: RotateCcw, label: 'Easy Returns', sub: '7 days' },
-                { icon: Shield, label: 'Authentic', sub: '100% genuine' },
-              ].map(({ icon: Icon, label, sub }) => (
-                <div key={label} className="glass rounded-lg p-3 text-center border border-base-300">
-                  <Icon size={16} className="text-brand mx-auto mb-1.5" />
-                  <p className="text-xs font-semibold text-surface-primary">{label}</p>
-                  <p className="text-[10px] text-surface-muted">{sub}</p>
+
+            {/* Size Notice — clickable to open size guide */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }}>
+              <button
+                onClick={() => setSizeGuideOpen(true)}
+                className="w-full glass rounded-xl p-4 border-2 border-dashed border-brand/30 flex items-center justify-between gap-3 hover:border-brand/70 hover:bg-brand/5 transition-all duration-300 group cursor-pointer shadow-glow-sm hover:shadow-glow-md"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-brand/20 flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                    <Ruler size={18} className="text-brand" />
+                  </div>
+                  <div className="text-left">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-black text-surface-primary tracking-wide uppercase">Size Chart & Fit Guide</p>
+                      <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
+                    </div>
+                    <p className="text-[11px] text-surface-muted mt-0.5">
+                      Kindly check the measurements before ordering.
+                    </p>
+                  </div>
                 </div>
-              ))}
+                <span className="text-[10px] font-black bg-brand hover:bg-brand-400 text-white px-3 py-2 rounded-lg uppercase tracking-wider transition-colors duration-200 shrink-0">
+                  View Chart
+                </span>
+              </button>
             </motion.div>
+
 
             <div className="divider" />
 
@@ -548,7 +561,7 @@ export default function ProductDetail() {
 
       {/* ─── Elite Multi-Column Size Guide Modal ─── */}
       <AnimatePresence>
-        {sizeGuideOpen && product.size_guide && (
+        {sizeGuideOpen && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
@@ -563,7 +576,7 @@ export default function ProductDetail() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="fixed inset-0 z-50 flex items-center justify-center p-4"
             >
-              <div className="glass-dark rounded-3xl p-6 sm:p-8 max-w-2xl w-full border border-base-300 shadow-2xl relative z-10">
+              <div className="glass-dark rounded-3xl p-6 sm:p-8 max-w-2xl w-full border border-base-300 shadow-2xl relative z-10 max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between mb-6 pb-4 border-b border-base-300/80">
                   <div className="flex items-center gap-3 text-brand font-bold">
                     <div className="w-10 h-10 rounded-xl bg-brand/20 flex items-center justify-center">
@@ -589,30 +602,60 @@ export default function ProductDetail() {
                 </div>
 
                 {/* Table */}
-                <div className="rounded-2xl border border-base-300 overflow-hidden bg-base-950 shadow-inner overflow-x-auto">
-                  <table className="w-full text-center border-collapse font-mono text-sm">
-                    <thead>
-                      <tr className="border-b border-base-300 bg-base-900/80">
-                        {cols.map((col, idx) => (
-                          <th key={idx} className="py-3.5 px-4 text-xs font-bold text-surface-secondary uppercase tracking-wider border-r border-base-300/50 last:border-0">
-                            {col}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-base-300/50">
-                      {rows.map((row, rIdx) => (
-                        <tr key={rIdx} className="hover:bg-base-900/40 transition-colors group">
-                          {cols.map((col, cIdx) => (
-                            <td key={cIdx} className={`py-3.5 px-4 border-r border-base-300/50 last:border-0 ${cIdx === 0 ? 'font-bold text-brand bg-brand/5 group-hover:bg-brand/10' : 'text-surface-primary'}`}>
-                              {row[col] || '—'}
-                            </td>
+                {rows.length > 0 ? (
+                  <div className="rounded-2xl border border-base-300 overflow-hidden bg-base-950 shadow-inner overflow-x-auto">
+                    <table className="w-full text-center border-collapse font-mono text-sm">
+                      <thead>
+                        <tr className="border-b border-base-300 bg-base-900/80">
+                          {cols.map((col, idx) => (
+                            <th key={idx} className="py-3.5 px-4 text-xs font-bold text-surface-secondary uppercase tracking-wider border-r border-base-300/50 last:border-0">
+                              {col}
+                            </th>
                           ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-base-300/50">
+                        {rows.map((row, rIdx) => (
+                          <tr key={rIdx} className="hover:bg-base-900/40 transition-colors group">
+                            {cols.map((col, cIdx) => (
+                              <td key={cIdx} className={`py-3.5 px-4 border-r border-base-300/50 last:border-0 ${cIdx === 0 ? 'font-bold text-brand bg-brand/5 group-hover:bg-brand/10' : 'text-surface-primary'}`}>
+                                {row[col] || '—'}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-base-300 overflow-hidden bg-base-950 shadow-inner overflow-x-auto">
+                    <table className="w-full text-center border-collapse font-mono text-sm">
+                      <thead>
+                        <tr className="border-b border-base-300 bg-base-900/80">
+                          {['Size', 'Chest', 'Length', 'Shoulder'].map((h) => (
+                            <th key={h} className="py-3.5 px-4 text-xs font-bold text-surface-secondary uppercase tracking-wider border-r border-base-300/50 last:border-0">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-base-300/50">
+                        {[
+                          { Size: 'M', Chest: '38', Length: '27', Shoulder: '17.5' },
+                          { Size: 'L', Chest: '40', Length: '28', Shoulder: '18.5' },
+                          { Size: 'XL', Chest: '42', Length: '29', Shoulder: '19.5' },
+                          { Size: 'XXL', Chest: '44', Length: '30', Shoulder: '20.5' },
+                        ].map((row, rIdx) => (
+                          <tr key={rIdx} className="hover:bg-base-900/40 transition-colors group">
+                            {['Size', 'Chest', 'Length', 'Shoulder'].map((col, cIdx) => (
+                              <td key={cIdx} className={`py-3.5 px-4 border-r border-base-300/50 last:border-0 ${cIdx === 0 ? 'font-bold text-brand bg-brand/5 group-hover:bg-brand/10' : 'text-surface-primary'}`}>
+                                {row[col]}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
 
                 <button
                   onClick={() => setSizeGuideOpen(false)}

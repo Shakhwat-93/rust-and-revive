@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { ArrowRight, ChevronRight, Zap, Star, TrendingUp, Loader2, Heart, MessageCircle, Sparkles, ExternalLink } from 'lucide-react';
+import { ArrowRight, ChevronRight, Zap, Star, TrendingUp, Heart, MessageCircle, Sparkles, ExternalLink } from 'lucide-react';
 import { getProducts, getSiteSettings, getCategories } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { collections } from '../data/products';
@@ -514,17 +514,37 @@ function InstagramSection({ settings }) {
   );
 }
 
+/* ─── Cache helpers ──────────────────────────────────────────────────── */
+const CACHE_KEY = 'rr_home_cache';
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function readCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const { ts, data } = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL) return null;
+    return data;
+  } catch { return null; }
+}
+
+function writeCache(data) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
+  } catch {}
+}
+
 /* ─── Home Page ──────────────────────────────────────────────────────── */
 export default function Home() {
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [topSellingProduct, setTopSellingProduct] = useState(null);
-  const [settings, setSettings] = useState(defaultHome);
-  const [loading, setLoading] = useState(true);
+  // Seed state from cache synchronously so first paint uses real data
+  const cached = readCache();
+  const [products, setProducts] = useState(cached?.products || []);
+  const [categories, setCategories] = useState(cached?.categories || []);
+  const [topSellingProduct, setTopSellingProduct] = useState(cached?.topSellingProduct || null);
+  const [settings, setSettings] = useState(cached?.settings ? { ...defaultHome, ...cached.settings } : defaultHome);
 
   useEffect(() => {
     async function load() {
-      setLoading(true);
       try {
         const [prodData, catData, siteData, ordersResponse] = await Promise.all([
           getProducts(),
@@ -532,13 +552,12 @@ export default function Home() {
           getSiteSettings('home_page'),
           supabase.from('orders').select('ordered_items')
         ]);
-        
-        setProducts(prodData || []);
-        setCategories(catData || []);
-        
-        if (siteData) {
-          setSettings({ ...defaultHome, ...siteData });
-        }
+
+        const freshSettings = siteData ? { ...defaultHome, ...siteData } : defaultHome;
+
+        if (prodData?.length) setProducts(prodData);
+        if (catData?.length) setCategories(catData);
+        if (siteData) setSettings(freshSettings);
 
         // Calculate top selling product dynamically
         const ordersData = ordersResponse?.data || [];
@@ -556,31 +575,27 @@ export default function Home() {
         let topProductSlug = null;
         let maxSales = -1;
         Object.entries(productSales).forEach(([slug, qty]) => {
-          if (qty > maxSales) {
-            maxSales = qty;
-            topProductSlug = slug;
-          }
+          if (qty > maxSales) { maxSales = qty; topProductSlug = slug; }
         });
 
-        const topProduct = prodData?.find(p => p.slug === topProductSlug) || prodData?.find(p => p.badge?.toLowerCase() === 'featured' || p.badge?.toLowerCase() === 'hot') || prodData?.[0];
+        const topProduct = prodData?.find(p => p.slug === topProductSlug)
+          || prodData?.find(p => p.badge?.toLowerCase() === 'featured' || p.badge?.toLowerCase() === 'hot')
+          || prodData?.[0];
         setTopSellingProduct(topProduct || null);
+
+        // Update cache with latest data
+        writeCache({
+          settings: siteData || null,
+          products: prodData || [],
+          categories: catData || [],
+          topSellingProduct: topProduct || null,
+        });
       } catch (err) {
         console.error('Error fetching home data:', err);
-      } finally {
-        setLoading(false);
       }
     }
     load();
   }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-base-800">
-        <Loader2 size={40} className="text-brand animate-spin" />
-        <p className="text-surface-secondary text-xs font-mono tracking-widest uppercase animate-pulse">Loading Storefront...</p>
-      </div>
-    );
-  }
 
   return (
     <main>

@@ -1,7 +1,7 @@
 // src/pages/InfoPages.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, Phone, MapPin, ShieldAlert, Truck, RefreshCw, Ruler, BookOpen, MessageCircle } from 'lucide-react';
+import { Mail, Phone, MapPin, ShieldAlert, Truck, RefreshCw, ArrowLeftRight, Ruler, BookOpen, MessageCircle } from 'lucide-react';
 
 /* ─── Sizing Guide Page ──────────────────────────────────────────────── */
 export function SizingGuide() {
@@ -143,34 +143,37 @@ export function ReturnsExchanges() {
       <div className="container-site max-w-3xl">
         <p className="section-label mb-2">Help & Guides</p>
         <h1 className="font-black text-3xl sm:text-4xl text-surface-primary mb-6">Returns & Exchanges</h1>
-        
-        <div className="glass-dark p-6 sm:p-8 rounded-xl border border-base-300/40 space-y-6">
-          <div className="flex gap-4 items-start">
-            <RefreshCw className="text-brand flex-shrink-0 mt-1" size={24} />
-            <div>
-              <h2 className="font-bold text-lg text-surface-primary">Our Return Policy</h2>
-              <p className="text-surface-secondary text-sm mt-1">
-                We want you to love your streetwear fit. If you're not completely satisfied, we offer a straightforward return/exchange process.
-              </p>
+
+        <div className="space-y-5">
+
+          {/* Return Policy */}
+          <div className="glass-dark p-6 sm:p-8 rounded-xl border border-base-300/40">
+            <div className="flex gap-4 items-start mb-4">
+              <RefreshCw className="text-brand flex-shrink-0 mt-1" size={22} />
+              <h2 className="font-black text-xl text-surface-primary">Return</h2>
             </div>
+            <p className="text-surface-secondary text-sm leading-relaxed">
+              You can return the product <strong className="text-surface-primary">while the delivery person is still there.</strong> Once the delivery person leaves, we do not accept returns.
+            </p>
           </div>
 
-          <div className="border-t border-base-300/30 pt-6 space-y-4 text-sm text-surface-secondary">
-            <p>
-              <strong className="text-surface-primary">1. Time Limit:</strong> Requests for return/exchange must be submitted within 7 days of receiving the package.
-            </p>
-            <p>
-              <strong className="text-surface-primary">2. Condition:</strong> Items must be unworn, unwashed, and still have all tags attached in original packaging.
-            </p>
-            <p>
-              <strong className="text-surface-primary">3. Processing:</strong> Please contact us via email or phone to initiate your exchange. Courier fees for exchanges are the responsibility of the customer unless the product arrived damaged or defective.
+          {/* Exchange Policy */}
+          <div className="glass-dark p-6 sm:p-8 rounded-xl border border-base-300/40">
+            <div className="flex gap-4 items-start mb-4">
+              <ArrowLeftRight className="text-brand flex-shrink-0 mt-1" size={22} />
+              <h2 className="font-black text-xl text-surface-primary">Exchange</h2>
+            </div>
+            <p className="text-surface-secondary text-sm leading-relaxed">
+              We're happy to offer exchanges. However, customers are responsible for the <strong className="text-surface-primary">return delivery charge.</strong> Requests for exchange must be submitted <strong className="text-surface-primary">within 24 hours</strong> of receiving the package.
             </p>
           </div>
+
         </div>
       </div>
     </div>
   );
 }
+
 
 /* ─── Contact Us Page ────────────────────────────────────────────────── */
 export function ContactUs() {

@@ -8,13 +8,23 @@ import Shop from './pages/Shop';
 import ProductDetail from './pages/ProductDetail';
 import Checkout from './pages/Checkout';
 import TrackOrder from './pages/TrackOrder';
-import { SizingGuide, ShippingInfo, ReturnsExchanges, ContactUs, OurStory, PrivacyPolicy, TermsOfService, CookiePolicy } from './pages/InfoPages';
+import { ShippingInfo, ReturnsExchanges, ContactUs, OurStory, PrivacyPolicy, TermsOfService, CookiePolicy } from './pages/InfoPages';
+
+/* ── Scroll to top on every route change ── */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname]);
+  return null;
+}
 
 /* Frontend layout */
 function FrontendLayout() {
   const location = useLocation();
   return (
     <div className="flex flex-col min-h-screen">
+      <ScrollToTop />
       <Navbar />
       <main className="flex-1">
         <AnimatePresence mode="wait">
@@ -31,7 +41,7 @@ function FrontendLayout() {
               <Route path="/product/:slug" element={<ProductDetail />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/track" element={<TrackOrder />} />
-              <Route path="/sizing-guide" element={<SizingGuide />} />
+
               <Route path="/shipping-info" element={<ShippingInfo />} />
               <Route path="/returns-exchanges" element={<ReturnsExchanges />} />
               <Route path="/contact-us" element={<ContactUs />} />
