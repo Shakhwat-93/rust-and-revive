@@ -304,11 +304,18 @@
   font-size: 0.65rem;
   font-weight: 900;
   color: #fff;
-  background: #3b82f6;
   padding: 3px 9px;
   border-radius: 6px;
   text-transform: uppercase;
   margin-left: 6px;
+}
+
+.courier-pill.steadfast-pill {
+  background: #3b82f6;
+}
+
+.courier-pill.pathao-pill {
+  background: #e11d48;
 }
 
 .customer-info-stack {

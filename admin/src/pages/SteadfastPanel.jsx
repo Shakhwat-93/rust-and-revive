@@ -125,6 +125,79 @@ export const SteadfastPanel = () => {
     }
   };
 
+  const triggerManualSyncAll = async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    const ordersToSync = steadfastOrders.filter(o => o.tracking_id);
+    
+    for (const order of ordersToSync) {
+      try {
+        setSyncStatus(prev => ({ ...prev, [order.id]: 'syncing' }));
+        await api.getSteadfastStatus(order.id, order.tracking_id);
+        setSyncStatus(prev => ({ ...prev, [order.id]: 'done' }));
+        setTimeout(() => setSyncStatus(prev => {
+          const next = { ...prev };
+          delete next[order.id];
+          return next;
+        }), 1500);
+      } catch (err) {
+        console.error(err);
+        setSyncStatus(prev => ({ ...prev, [order.id]: 'error' }));
+      }
+      await new Promise(resolve => setTimeout(resolve, 400));
+    }
+    setIsSyncing(false);
+  };
+
+  // Auto-sync pending orders on mount/load
+  useEffect(() => {
+    if (steadfastOrders.length === 0) return;
+
+    // Filter orders that need sync (i.e. status is not delivered, cancelled, or returned)
+    const ordersToSync = steadfastOrders.filter(o => {
+      if (!o.tracking_id) return false;
+      const s = String(o.courier_status || '').toLowerCase();
+      const isDelivered = s.includes('delivered') || s.includes('success');
+      const isFailed = s.includes('return') || s.includes('cancel') || s.includes('failed');
+      return !isDelivered && !isFailed;
+    });
+
+    if (ordersToSync.length === 0) return;
+
+    let active = true;
+    const syncAll = async () => {
+      for (const order of ordersToSync) {
+        if (!active) break;
+        try {
+          setSyncStatus(prev => ({ ...prev, [order.id]: 'syncing' }));
+          await api.getSteadfastStatus(order.id, order.tracking_id);
+          setSyncStatus(prev => ({ ...prev, [order.id]: 'done' }));
+          
+          setTimeout(() => {
+            if (active) {
+              setSyncStatus(prev => {
+                const next = { ...prev };
+                delete next[order.id];
+                return next;
+              });
+            }
+          }, 1500);
+        } catch (err) {
+          console.error(`Auto-sync failed for order #${order.id}:`, err);
+          if (active) setSyncStatus(prev => ({ ...prev, [order.id]: 'error' }));
+        }
+        await new Promise(resolve => setTimeout(resolve, 400));
+      }
+    };
+
+    const timeoutId = setTimeout(syncAll, 1500);
+
+    return () => {
+      active = false;
+      clearTimeout(timeoutId);
+    };
+  }, [orders.length]);
+
   const getTimeSinceDispatch = (dispatchedAt) => {
     if (!dispatchedAt) return null;
     const diff = Math.floor((currentTime - new Date(dispatchedAt)) / 1000);
@@ -155,9 +228,21 @@ export const SteadfastPanel = () => {
           <h1 className="premium-title">Courier Logistics Hub</h1>
           <p className="text-secondary">Mission-critical courier tracking and delivery verification.</p>
         </div>
-        <div className="active-dispatch-stat">
-          <Zap size={18} />
-          <span>Node Secured</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={triggerManualSyncAll} 
+            disabled={isSyncing || steadfastOrders.length === 0}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+            Sync All Statuses
+          </Button>
+          <div className="active-dispatch-stat">
+            <Zap size={18} />
+            <span>Node Secured</span>
+          </div>
         </div>
       </header>
 
@@ -269,7 +354,16 @@ export const SteadfastPanel = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span className="tracking-value">{order.tracking_id || 'Unassigned'}</span>
                           {order.tracking_id && (
-                            <a href={`https://portal.steadfast.com.bd/tracking/${order.tracking_id}`} target="_blank" rel="noreferrer" className="external-link" onClick={e => e.stopPropagation()}>
+                            <a 
+                              href={String(order.courier_name || '').toLowerCase() === 'pathao'
+                                ? 'https://pathao.com/courier/'
+                                : `https://portal.steadfast.com.bd/tracking/${order.tracking_id}`
+                              } 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="external-link" 
+                              onClick={e => e.stopPropagation()}
+                            >
                               <ExternalLink size={12} />
                             </a>
                           )}
@@ -284,7 +378,9 @@ export const SteadfastPanel = () => {
                             <span className="id-badge">#{order.id}</span>
                             {isOrderUnread(order) && <span className="route-unread-chip">New</span>}
                           </span>
-                          <span className="courier-pill">S-FAST</span>
+                          <span className={`courier-pill ${String(order.courier_name || '').toLowerCase() === 'pathao' ? 'pathao-pill' : 'steadfast-pill'}`}>
+                            {String(order.courier_name || 'S-FAST').toUpperCase()}
+                          </span>
                         </div>
                         <div className="customer-info-stack">
                           <div className="customer-name-row"><User size={12} /> {order.customer_name}</div>
