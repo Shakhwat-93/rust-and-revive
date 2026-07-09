@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight, ChevronRight, Zap, Star, TrendingUp, Loader2, Heart, MessageCircle, Sparkles, ExternalLink } from 'lucide-react';
-import { getProducts, getSiteSettings } from '../lib/api';
+import { getProducts, getSiteSettings, getCategories } from '../lib/api';
 import { collections } from '../data/products';
 import ProductCard from '../components/shop/ProductCard';
 
@@ -171,7 +171,21 @@ function Hero({ settings }) {
 }
 
 /* ─── Collections ────────────────────────────────────────────────────── */
-function Collections({ settings }) {
+function Collections({ settings, categories }) {
+  const list = categories && categories.length > 0 
+    ? categories.map(cat => ({
+        id: cat.slug,
+        label: cat.name,
+        desc: cat.description,
+        image: cat.image_url || '/images/hoodie-rust.webp'
+      }))
+    : [
+        { id: 'hoodies', label: 'Hoodies', desc: 'Heavy & Oversized', image: '/images/hoodie-rust.webp' },
+        { id: 'bottoms', label: 'Bottoms', desc: 'Utility & Street', image: '/images/cargo-black.webp' },
+        { id: 'jackets', label: 'Jackets', desc: 'Layer Up', image: '/images/jacket-bomber.webp' },
+        { id: 'tees', label: 'Tees', desc: 'The Essential', image: '/images/tee-charcoal.webp' }
+      ];
+
   return (
     <section className="py-24 lg:py-32">
       <div className="container-site">
@@ -187,7 +201,7 @@ function Collections({ settings }) {
         </Reveal>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {collections.map((col, i) => (
+          {list.map((col, i) => (
             <Reveal key={col.id} delay={i * 0.1}>
               <Link
                 to={`/shop?cat=${col.id}`}
@@ -475,6 +489,7 @@ function InstagramSection({ settings }) {
 /* ─── Home Page ──────────────────────────────────────────────────────── */
 export default function Home() {
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [settings, setSettings] = useState(defaultHome);
   const [loading, setLoading] = useState(true);
 
@@ -482,11 +497,13 @@ export default function Home() {
     async function load() {
       setLoading(true);
       try {
-        const [prodData, siteData] = await Promise.all([
+        const [prodData, catData, siteData] = await Promise.all([
           getProducts(),
+          getCategories(),
           getSiteSettings('home_page'),
         ]);
         setProducts(prodData);
+        setCategories(catData || []);
         if (siteData) {
           setSettings({ ...defaultHome, ...siteData });
         }
@@ -511,7 +528,7 @@ export default function Home() {
   return (
     <main>
       <Hero settings={settings} />
-      <Collections settings={settings} />
+      <Collections settings={settings} categories={categories} />
       {products.length > 0 && (
         <>
           <LatestDrop products={products} settings={settings} />
