@@ -379,3 +379,9 @@ input:checked + .sf-slider:before {
   border-top: 1px solid var(--glass-border);
   padding-top: var(--sp-4);
 }
+
+
+/* Multiple Image Upload Preview grid styling */
+.mult-img-thumb:hover .mult-img-overlay {
+  opacity: 1 !important;
+}

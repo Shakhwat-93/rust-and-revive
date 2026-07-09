@@ -115,6 +115,211 @@ const ImageUploadInput = ({ label, value, onChange, placeholder, required = fals
   );
 };
 
+// Reusable Multiple Image Upload Input Component connected to Supabase Storage
+const MultipleImageUploadInput = ({ label, value = [], onChange }) => {
+  const [uploading, setUploading] = useState(false);
+
+  const handleUpload = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    try {
+      const uploadedUrls = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { data, error } = await supabase.storage
+          .from('storefront')
+          .upload(filePath, file);
+
+        if (error) throw error;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('storefront')
+          .getPublicUrl(filePath);
+
+        uploadedUrls.push(publicUrl);
+      }
+
+      onChange([...value, ...uploadedUrls]);
+    } catch (err) {
+      console.error('Multiple upload error:', err);
+      alert('Failed to upload image(s): ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removeImage = (indexToRemove) => {
+    const updated = value.filter((_, idx) => idx !== indexToRemove);
+    onChange(updated);
+  };
+
+  const moveImage = (index, direction) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= value.length) return;
+    const updated = [...value];
+    const temp = updated[index];
+    updated[index] = updated[newIndex];
+    updated[newIndex] = temp;
+    onChange(updated);
+  };
+
+  return (
+    <div className="sf-form-group full-width" style={{ gridColumn: '1 / -1' }}>
+      <label className="sf-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span>{label}</span>
+        <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{value.length} images uploaded</span>
+      </label>
+      
+      {/* Upload area */}
+      <div style={{ marginBottom: '16px' }}>
+        <label 
+          className="action-btn-green"
+          style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            cursor: 'pointer',
+            padding: '10px 20px',
+            borderRadius: '100px',
+            fontSize: '13px',
+            fontWeight: 700,
+            boxShadow: '0 4px 14px rgba(13, 148, 136, 0.3)',
+          }}
+        >
+          {uploading ? (
+            <>
+              <Loader2 size={14} className="spin" />
+              <span>Uploading Multiple...</span>
+            </>
+          ) : (
+            <>
+              <Upload size={14} />
+              <span>Upload Images</span>
+            </>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            style={{ display: 'none' }}
+            onChange={handleUpload}
+            disabled={uploading}
+          />
+        </label>
+      </div>
+
+      {/* Preview Grid */}
+      {value.length > 0 && (
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', 
+          gap: '12px',
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px dashed rgba(255,255,255,0.1)',
+          borderRadius: '8px',
+          padding: '12px'
+        }}>
+          {value.map((url, idx) => (
+            <div 
+              key={idx} 
+              style={{ 
+                position: 'relative', 
+                aspectRatio: '1', 
+                borderRadius: '6px', 
+                overflow: 'hidden',
+                border: '1px solid rgba(255,255,255,0.08)'
+              }}
+              className="mult-img-thumb"
+            >
+              <img 
+                src={url} 
+                alt={`Product image ${idx + 1}`} 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+              />
+              {/* Overlays for delete and move */}
+              <div 
+                style={{ 
+                  position: 'absolute', 
+                  inset: 0, 
+                  background: 'rgba(0,0,0,0.6)', 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  justifyContent: 'space-between',
+                  padding: '4px',
+                  opacity: 0,
+                  transition: 'opacity 0.2s',
+                }}
+                className="mult-img-overlay"
+              >
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button 
+                    type="button"
+                    onClick={() => removeImage(idx)}
+                    style={{ 
+                      background: 'rgba(239, 68, 68, 0.9)', 
+                      border: 'none', 
+                      color: 'white', 
+                      borderRadius: '4px', 
+                      padding: '4px', 
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '4px' }}>
+                  <button 
+                    type="button"
+                    disabled={idx === 0}
+                    onClick={() => moveImage(idx, -1)}
+                    style={{ 
+                      background: 'rgba(255,255,255,0.2)', 
+                      border: 'none', 
+                      color: 'white', 
+                      borderRadius: '4px', 
+                      padding: '2px 6px', 
+                      cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                      fontSize: '10px'
+                    }}
+                  >
+                    ◀
+                  </button>
+                  <span style={{ fontSize: '10px', color: 'white', alignSelf: 'center', fontWeight: 'bold' }}>#{idx + 1}</span>
+                  <button 
+                    type="button"
+                    disabled={idx === value.length - 1}
+                    onClick={() => moveImage(idx, 1)}
+                    style={{ 
+                      background: 'rgba(255,255,255,0.2)', 
+                      border: 'none', 
+                      color: 'white', 
+                      borderRadius: '4px', 
+                      padding: '2px 6px', 
+                      cursor: idx === value.length - 1 ? 'not-allowed' : 'pointer',
+                      fontSize: '10px'
+                    }}
+                  >
+                    ▶
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const defaultHome = {
   heroBgImage: "/images/hero-banner.webp",
   heroBadge: "New Season Drop",
@@ -265,6 +470,7 @@ export const StorefrontManagement = () => {
         original_price: product.original_price || '',
         badge: product.badge || '',
         image: product.image || '',
+        images: Array.isArray(product.images) ? product.images : [],
         description: product.description || '',
         long_description: product.long_description || '',
         in_stock: product.in_stock !== false,
@@ -276,7 +482,7 @@ export const StorefrontManagement = () => {
       setEditingProduct(null);
       setProdForm({
         name: '', slug: '', category: categories[0]?.slug || '', price: '', original_price: '',
-        badge: '', image: '', description: '', long_description: '',
+        badge: '', image: '', images: [], description: '', long_description: '',
         in_stock: true, sizes: 'S, M, L, XL', colors: 'Black, White', inventory_id: ''
       });
     }
@@ -319,6 +525,7 @@ export const StorefrontManagement = () => {
       original_price: prodForm.original_price ? Number(prodForm.original_price) : null,
       badge: prodForm.badge || null,
       image: prodForm.image,
+      images: prodForm.images,
       description: prodForm.description,
       long_description: prodForm.long_description,
       in_stock: prodForm.in_stock,
@@ -996,11 +1203,17 @@ export const StorefrontManagement = () => {
               </div>
 
               <ImageUploadInput
-                label="Product Image URL"
+                label="Product Main Image URL"
                 value={prodForm.image}
                 onChange={(val) => setProdForm({ ...prodForm, image: val })}
                 placeholder="e.g. /images/hoodie-black.webp"
                 required
+              />
+
+              <MultipleImageUploadInput
+                label="Product Additional Images"
+                value={prodForm.images || []}
+                onChange={(urls) => setProdForm({ ...prodForm, images: urls })}
               />
 
               <div className="sf-form-group">
