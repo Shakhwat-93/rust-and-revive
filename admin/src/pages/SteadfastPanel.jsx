@@ -152,7 +152,7 @@ export const SteadfastPanel = () => {
     >
       <header className="panel-header">
         <div>
-          <h1 className="premium-title">Steadfast Logistics Hub</h1>
+          <h1 className="premium-title">Courier Logistics Hub</h1>
           <p className="text-secondary">Mission-critical courier tracking and delivery verification.</p>
         </div>
         <div className="active-dispatch-stat">

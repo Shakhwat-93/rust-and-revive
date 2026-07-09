@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { ArrowRight, ChevronRight, Zap, Star, TrendingUp, Loader2, Heart, MessageCircle, Sparkles, ExternalLink } from 'lucide-react';
 import { getProducts, getSiteSettings, getCategories } from '../lib/api';
+import { supabase } from '../lib/supabase';
 import { collections } from '../data/products';
 import ProductCard from '../components/shop/ProductCard';
 
@@ -312,71 +313,98 @@ function ProductGrid({ products, settings }) {
 }
 
 /* ─── Brand Story ────────────────────────────────────────────────────── */
-function BrandStory({ settings }) {
-  const stats = settings.brandStoryStats || defaultHome.brandStoryStats;
+/* ─── Featured Product Showcase ───────────────────────────────────────── */
+function FeaturedShowcase({ product }) {
+  const [activeImage, setActiveImage] = useState(product.image);
+  const images = Array.isArray(product.images) && product.images.length > 0 
+    ? [product.image, ...product.images.slice(0, 3)] 
+    : [product.image];
+
+  const featuresList = Array.isArray(product.features) && product.features.length > 0
+    ? product.features.slice(0, 3)
+    : ['100% Premium Fleece', 'Custom Oversized Fit', 'Garment Washed'];
 
   return (
-    <section className="py-24 lg:py-32 relative overflow-hidden">
+    <section className="py-24 lg:py-32 relative overflow-hidden bg-base-900/50">
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-brand/3 to-transparent pointer-events-none" />
 
       <div className="container-site relative z-10">
+        <Reveal className="mb-12">
+          <p className="section-label mb-2">Top Selling</p>
+          <h2 className="font-black text-h2 text-surface-primary">Best Seller</h2>
+        </Reveal>
+
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-          {/* Image */}
-          <Reveal className="relative">
-            <div className="relative rounded-2xl overflow-hidden aspect-square lg:aspect-[4/5]">
+          {/* Images Gallery */}
+          <Reveal className="space-y-4">
+            <div className="relative rounded-2xl overflow-hidden aspect-[4/5] bg-base-800 border border-base-300/30 shadow-premium">
+              {product.badge && (
+                <span className="absolute top-4 left-4 z-10 px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase bg-brand text-white shadow-glow-sm">
+                  {product.badge}
+                </span>
+              )}
               <img
-                src={settings.brandStoryImage || defaultHome.brandStoryImage}
-                alt="Rust Revive Brand Story"
-                className="w-full h-full object-cover"
+                src={activeImage}
+                alt={product.name}
+                className="w-full h-full object-cover transition-all duration-300"
               />
-              <div className="absolute inset-0 bg-gradient-to-br from-brand/15 to-transparent" />
             </div>
-            {/* Floating badge */}
-            <motion.div
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-              className="absolute -bottom-5 -right-5 lg:bottom-8 lg:right-8 glass-brand rounded-2xl px-6 py-4 shadow-glass"
-            >
-              <div className="flex items-center gap-2 mb-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} size={12} className="fill-brand text-brand" />
+            
+            {/* Thumbnails */}
+            {images.length > 1 && (
+              <div className="flex gap-3">
+                {images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveImage(img)}
+                    className={`w-20 h-20 rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
+                      activeImage === img ? 'border-brand scale-95 shadow-glow-sm' : 'border-transparent opacity-60 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={img} alt="" className="w-full h-full object-cover" />
+                  </button>
                 ))}
               </div>
-              <p className="text-small font-bold">5,000+ Happy Customers</p>
-              <p className="text-xs text-surface-muted">Across Bangladesh</p>
-            </motion.div>
+            )}
           </Reveal>
 
-          {/* Text */}
+          {/* Product Details & Purchase Trigger */}
           <div>
             <Reveal>
-              <p className="section-label mb-4">{settings.brandStoryLabel || defaultHome.brandStoryLabel}</p>
-              <h2 className="font-black text-h1 mb-6 leading-tight whitespace-pre-line">
-                {settings.brandStoryTitle || defaultHome.brandStoryTitle}
-              </h2>
-            </Reveal>
-            <Reveal delay={0.1}>
-              <p className="text-surface-secondary leading-relaxed mb-6 whitespace-pre-line">
-                {settings.brandStoryText1 || defaultHome.brandStoryText1}
-              </p>
-              <p className="text-surface-secondary leading-relaxed mb-8 whitespace-pre-line">
-                {settings.brandStoryText2 || defaultHome.brandStoryText2}
+              <h3 className="font-black text-3xl sm:text-4xl text-surface-primary leading-tight mb-4">
+                {product.name}
+              </h3>
+              
+              <div className="flex items-baseline gap-3 mb-6">
+                <span className="text-2xl font-black text-brand">৳ {product.price?.toLocaleString('en-BD')}</span>
+                {product.original_price && (
+                  <span className="text-sm text-surface-muted line-through">৳ {product.original_price?.toLocaleString('en-BD')}</span>
+                )}
+              </div>
+
+              <p className="text-surface-secondary leading-relaxed mb-6">
+                {product.description || product.long_description}
               </p>
             </Reveal>
 
-            <Reveal delay={0.2} className="grid grid-cols-3 gap-4 mb-8">
-              {stats.map(({ val, label }, i) => (
-                <div key={i} className="text-center p-4 rounded-xl glass">
-                  <p className="font-black text-h4 text-brand">{val}</p>
-                  <p className="text-xs text-surface-muted mt-1">{label}</p>
+            {/* Features Bullet List */}
+            <Reveal delay={0.1} className="space-y-3 mb-8 border-t border-b border-base-300/30 py-6">
+              {featuresList.map((feature, i) => (
+                <div key={i} className="flex items-center gap-3 text-sm text-surface-secondary">
+                  <div className="w-1.5 h-1.5 rounded-full bg-brand" />
+                  <span>{feature}</span>
                 </div>
               ))}
             </Reveal>
 
-            <Reveal delay={0.3}>
-              <Link to="/shop" className="btn-primary group inline-flex items-center gap-2">
-                Shop the Vision
-                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            {/* CTA Buy/View Details Button */}
+            <Reveal delay={0.2}>
+              <Link
+                to={`/product/${product.slug}`}
+                className="btn-primary w-full py-4 flex items-center justify-center gap-2 font-black uppercase text-sm tracking-wider shadow-glow"
+              >
+                <span>View Details & Buy</span>
+                <ArrowRight size={16} />
               </Link>
             </Reveal>
           </div>
@@ -490,6 +518,7 @@ function InstagramSection({ settings }) {
 export default function Home() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [topSellingProduct, setTopSellingProduct] = useState(null);
   const [settings, setSettings] = useState(defaultHome);
   const [loading, setLoading] = useState(true);
 
@@ -497,16 +526,44 @@ export default function Home() {
     async function load() {
       setLoading(true);
       try {
-        const [prodData, catData, siteData] = await Promise.all([
+        const [prodData, catData, siteData, ordersResponse] = await Promise.all([
           getProducts(),
           getCategories(),
           getSiteSettings('home_page'),
+          supabase.from('orders').select('ordered_items')
         ]);
-        setProducts(prodData);
+        
+        setProducts(prodData || []);
         setCategories(catData || []);
+        
         if (siteData) {
           setSettings({ ...defaultHome, ...siteData });
         }
+
+        // Calculate top selling product dynamically
+        const ordersData = ordersResponse?.data || [];
+        const productSales = {};
+        ordersData.forEach(order => {
+          const items = Array.isArray(order.ordered_items) ? order.ordered_items : [];
+          items.forEach(item => {
+            const slug = item.slug;
+            if (slug) {
+              productSales[slug] = (productSales[slug] || 0) + (Number(item.quantity) || 1);
+            }
+          });
+        });
+
+        let topProductSlug = null;
+        let maxSales = -1;
+        Object.entries(productSales).forEach(([slug, qty]) => {
+          if (qty > maxSales) {
+            maxSales = qty;
+            topProductSlug = slug;
+          }
+        });
+
+        const topProduct = prodData?.find(p => p.slug === topProductSlug) || prodData?.find(p => p.badge?.toLowerCase() === 'featured' || p.badge?.toLowerCase() === 'hot') || prodData?.[0];
+        setTopSellingProduct(topProduct || null);
       } catch (err) {
         console.error('Error fetching home data:', err);
       } finally {
@@ -535,7 +592,7 @@ export default function Home() {
           <ProductGrid products={products} settings={settings} />
         </>
       )}
-      <BrandStory settings={settings} />
+      {topSellingProduct && <FeaturedShowcase product={topSellingProduct} />}
       <InstagramSection settings={settings} />
     </main>
   );

@@ -8,6 +8,7 @@ import Shop from './pages/Shop';
 import ProductDetail from './pages/ProductDetail';
 import Checkout from './pages/Checkout';
 import TrackOrder from './pages/TrackOrder';
+import { SizingGuide, ShippingInfo, ReturnsExchanges, ContactUs, OurStory, PrivacyPolicy, TermsOfService, CookiePolicy } from './pages/InfoPages';
 
 /* Frontend layout */
 function FrontendLayout() {
@@ -30,6 +31,14 @@ function FrontendLayout() {
               <Route path="/product/:slug" element={<ProductDetail />} />
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/track" element={<TrackOrder />} />
+              <Route path="/sizing-guide" element={<SizingGuide />} />
+              <Route path="/shipping-info" element={<ShippingInfo />} />
+              <Route path="/returns-exchanges" element={<ReturnsExchanges />} />
+              <Route path="/contact-us" element={<ContactUs />} />
+              <Route path="/our-story" element={<OurStory />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms-of-service" element={<TermsOfService />} />
+              <Route path="/cookie-policy" element={<CookiePolicy />} />
             </Routes>
           </motion.div>
         </AnimatePresence>

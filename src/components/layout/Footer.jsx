@@ -1,7 +1,37 @@
 // src/components/layout/Footer.jsx
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Camera, MessageCircle, Play, Zap, ArrowUpRight, Mail } from 'lucide-react';
+import { Zap, ArrowUpRight, Mail } from 'lucide-react';
+
+const FacebookIcon = (props) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    {...props}
+  >
+    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+  </svg>
+);
+
+const InstagramIcon = (props) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    {...props}
+  >
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+  </svg>
+);
 
 const footerLinks = {
   Shop: [
@@ -12,25 +42,17 @@ const footerLinks = {
     { label: 'Jackets', to: '/shop?cat=jackets' },
   ],
   Help: [
-    { label: 'Sizing Guide', to: '#' },
-    { label: 'Shipping Info', to: '#' },
-    { label: 'Returns & Exchanges', to: '#' },
+    { label: 'Sizing Guide', to: '/sizing-guide' },
+    { label: 'Shipping Info', to: '/shipping-info' },
+    { label: 'Returns & Exchanges', to: '/returns-exchanges' },
     { label: 'Track Order', to: '/track' },
-    { label: 'Contact Us', to: '#' },
-  ],
-  Brand: [
-    { label: 'Our Story', to: '#' },
-    { label: 'Sustainability', to: '#' },
-    { label: 'Collaborations', to: '#' },
-    { label: 'Press', to: '#' },
-    { label: 'Admin Panel', to: '/admin' },
+    { label: 'Contact Us', to: '/contact-us' },
   ],
 };
 
 const socials = [
-  { icon: Camera, label: 'Instagram', href: '#' },
-  { icon: MessageCircle, label: 'Twitter', href: '#' },
-  { icon: Play, label: 'YouTube', href: '#' },
+  { icon: FacebookIcon, label: 'Facebook', href: 'https://www.facebook.com/rustandrevive' },
+  { icon: InstagramIcon, label: 'Instagram', href: 'https://www.instagram.com/rustandrevive' },
 ];
 
 export default function Footer() {
@@ -41,10 +63,10 @@ export default function Footer() {
 
       <div className="container-site py-20 relative z-10">
 
-        {/* Top — Brand + Newsletter */}
-        <div className="flex flex-col lg:flex-row gap-12 lg:gap-24 mb-16">
+        {/* Top — Brand */}
+        <div className="flex flex-col lg:flex-row gap-12 justify-between items-start mb-16">
           {/* Brand */}
-          <div className="lg:w-80 flex-shrink-0">
+          <div className="lg:w-96">
             <Link to="/" className="inline-block mb-4">
               <div className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center shadow-glow-sm">
                 <img src="/logo.webp" alt="Rust Revive Logo" className="w-full h-full object-cover" />
@@ -66,30 +88,6 @@ export default function Footer() {
                   <Icon size={16} />
                 </motion.a>
               ))}
-            </div>
-          </div>
-
-          {/* Newsletter */}
-          <div className="flex-1">
-            <div className="glass-brand rounded-xl p-6 lg:p-8">
-              <h3 className="font-bold text-h4 mb-1">First drops, first access.</h3>
-              <p className="text-surface-secondary text-small mb-5">
-                Join 5,000+ Gen-Z subscribers. No spam, just drops.
-              </p>
-              <div className="flex gap-3">
-                <div className="flex-1 relative">
-                  <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-muted" />
-                  <input
-                    type="email"
-                    placeholder="your@email.com"
-                    className="input pl-9"
-                    id="newsletter-email"
-                  />
-                </div>
-                <button className="btn-primary whitespace-nowrap">
-                  Subscribe
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -136,9 +134,9 @@ export default function Footer() {
             </a>
           </p>
           <div className="flex items-center gap-4">
-            <Link to="#" className="text-xs text-surface-muted hover:text-surface-secondary transition-colors">Privacy</Link>
-            <Link to="#" className="text-xs text-surface-muted hover:text-surface-secondary transition-colors">Terms</Link>
-            <Link to="#" className="text-xs text-surface-muted hover:text-surface-secondary transition-colors">Cookies</Link>
+            <Link to="/privacy-policy" className="text-xs text-surface-muted hover:text-surface-secondary transition-colors">Privacy</Link>
+            <Link to="/terms-of-service" className="text-xs text-surface-muted hover:text-surface-secondary transition-colors">Terms</Link>
+            <Link to="/cookie-policy" className="text-xs text-surface-muted hover:text-surface-secondary transition-colors">Cookies</Link>
           </div>
         </div>
       </div>

@@ -77,6 +77,13 @@ export default defineConfig(({ mode }) => {
       port: 5174,
       watch: {
         ignored: ['**/node_modules_old/**']
+      },
+      proxy: {
+        '/api/pathao': {
+          target: env.VITE_PATHAO_BASE_URL || 'https://courier-api-sandbox.pathao.com',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/pathao/, ''),
+        }
       }
     }
   };

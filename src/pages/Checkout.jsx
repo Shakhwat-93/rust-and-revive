@@ -13,9 +13,9 @@ import { supabase } from '../lib/supabase';
 const formatPrice = (p) => `৳${Number(p).toLocaleString('en-BD')}`;
 
 const DEFAULT_SHIPPING = {
-  inside: 60,
+  inside: 80,
   sub: 100,
-  outside: 120
+  outside: 150
 };
 
 function generateOrderNumber() {
@@ -365,32 +365,74 @@ export default function Checkout() {
       // Snapshot items BEFORE clearing cart so success screen can show them
       const orderedItems = [...items];
 
-      // Decrement inventory stock for items linked to inventory
+      // Decrement inventory stock and product variant stock for items
       for (const item of orderedItems) {
-        if (item.product.inventory_id) {
-          try {
-            const { error: adjustErr } = await supabase.rpc('adjust_inventory_stock', {
-              item_id: item.product.inventory_id,
-              qty_change: -item.quantity
-            });
-            if (adjustErr) {
-              console.warn('adjust_inventory_stock RPC failed. Falling back to direct update...', adjustErr);
-              const { data: invItem } = await supabase
-                .from('inventory')
-                .select('current_stock')
-                .eq('id', item.product.inventory_id)
-                .single();
-              if (invItem) {
-                const newStock = Math.max(0, (invItem.current_stock || 0) - item.quantity);
+        try {
+          // 1. Fetch latest product details to ensure we have the most current variants array
+          const { data: dbProduct } = await supabase
+            .from('products')
+            .select('id, variants, inventory_id, in_stock')
+            .eq('id', item.product.id)
+            .single();
+
+          if (dbProduct) {
+            let updatedVariants = Array.isArray(dbProduct.variants) ? [...dbProduct.variants] : [];
+            let variantFound = false;
+
+            if (updatedVariants.length > 0) {
+              updatedVariants = updatedVariants.map(v => {
+                const sizeMatch = !v.size || String(v.size).trim().toLowerCase() === String(item.selectedSize || '').trim().toLowerCase();
+                const colorMatch = !v.color || String(v.color).trim().toLowerCase() === String(item.selectedColor || '').trim().toLowerCase();
+                if (sizeMatch && colorMatch) {
+                  variantFound = true;
+                  const newQty = Math.max(0, (Number(v.stock) || 0) - item.quantity);
+                  return { ...v, stock: newQty };
+                }
+                return v;
+              });
+            }
+
+            // Recalculate total product stock across variants
+            const totalStock = updatedVariants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
+            const inStock = updatedVariants.length > 0 ? (totalStock > 0) : dbProduct.in_stock;
+
+            // 2. Save the updated variants array & in_stock status back to the product
+            await supabase
+              .from('products')
+              .update({ 
+                variants: updatedVariants,
+                in_stock: inStock
+              })
+              .eq('id', dbProduct.id);
+
+            // 3. Decrement linked inventory item stock level if exists
+            const targetInventoryId = dbProduct.inventory_id;
+            if (targetInventoryId) {
+              if (updatedVariants.length > 0) {
+                // If it has variants, inventory stock is the sum of variants
                 await supabase
                   .from('inventory')
-                  .update({ current_stock: newStock })
-                  .eq('id', item.product.inventory_id);
+                  .update({ current_stock: totalStock })
+                  .eq('id', targetInventoryId);
+              } else {
+                // Otherwise, just decrement the inventory directly
+                const { data: invItem } = await supabase
+                  .from('inventory')
+                  .select('current_stock')
+                  .eq('id', targetInventoryId)
+                  .single();
+                if (invItem) {
+                  const newStock = Math.max(0, (invItem.current_stock || 0) - item.quantity);
+                  await supabase
+                    .from('inventory')
+                    .update({ current_stock: newStock })
+                    .eq('id', targetInventoryId);
+                }
               }
             }
-          } catch (e) {
-            console.error('Failed to decrement stock for item:', item.product.id, e);
           }
+        } catch (e) {
+          console.error('Failed to update variant stock for item:', item.product.id, e);
         }
       }
 

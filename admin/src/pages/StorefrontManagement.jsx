@@ -655,6 +655,9 @@ export const StorefrontManagement = () => {
         image: product.image || '',
         images: Array.isArray(product.images) ? product.images : [],
         size_guide: product.size_guide && typeof product.size_guide === 'object' && Array.isArray(product.size_guide.columns) ? product.size_guide : defaultSizeGuide,
+        features: Array.isArray(product.features) ? product.features.join(', ') : '',
+        material: product.material || '',
+        variants: Array.isArray(product.variants) ? product.variants : [],
         description: product.description || '',
         long_description: product.long_description || '',
         in_stock: product.in_stock !== false,
@@ -671,7 +674,10 @@ export const StorefrontManagement = () => {
       setEditingProduct(null);
       setProdForm({
         name: '', slug: '', category: categories[0]?.slug || '', price: '', original_price: '',
-        badge: '', image: '', images: [], size_guide: defaultSizeGuide, description: '', long_description: '',
+        badge: '', image: '', images: [], size_guide: defaultSizeGuide, 
+        features: '100% Premium Material, Custom Oversized Fit, Garment Washed', material: 'Cotton 100%',
+        variants: [],
+        description: '', long_description: '',
         in_stock: true, sizes: 'S, M, L, XL', colors: 'Black, White', inventory_id: ''
       });
     }
@@ -697,6 +703,75 @@ export const StorefrontManagement = () => {
     setIsCategoryModalOpen(true);
   };
 
+  // Variant Helper Functions
+  const generateVariantCombinations = () => {
+    const sizeList = prodForm.sizes.split(',').map(s => s.trim()).filter(Boolean);
+    const colorList = prodForm.colors.split(',').map(c => c.trim()).filter(Boolean);
+    
+    if (sizeList.length === 0 && colorList.length === 0) {
+      alert('Please enter some Available Sizes or Colors first.');
+      return;
+    }
+
+    const combinations = [];
+    const baseSku = (prodForm.slug || prodForm.name.toLowerCase().replace(/\s+/g, '-')).toUpperCase();
+    
+    if (sizeList.length > 0 && colorList.length > 0) {
+      sizeList.forEach(sz => {
+        colorList.forEach(cl => {
+          combinations.push({
+            size: sz,
+            color: cl,
+            sku: `${baseSku}-${sz.toUpperCase()}-${cl.toUpperCase()}`,
+            stock: 10
+          });
+        });
+      });
+    } else if (sizeList.length > 0) {
+      sizeList.forEach(sz => {
+        combinations.push({
+          size: sz,
+          color: '',
+          sku: `${baseSku}-${sz.toUpperCase()}`,
+          stock: 10
+        });
+      });
+    } else {
+      colorList.forEach(cl => {
+        combinations.push({
+          size: '',
+          color: cl,
+          sku: `${baseSku}-${cl.toUpperCase()}`,
+          stock: 10
+        });
+      });
+    }
+
+    setProdForm({ ...prodForm, variants: combinations });
+  };
+
+  const handleVariantChange = (index, field, value) => {
+    const updated = [...prodForm.variants];
+    updated[index] = { ...updated[index], [field]: value };
+    setProdForm({ ...prodForm, variants: updated });
+  };
+
+  const removeVariantRow = (index) => {
+    const updated = prodForm.variants.filter((_, i) => i !== index);
+    setProdForm({ ...prodForm, variants: updated });
+  };
+
+  const addVariantRow = () => {
+    const baseSku = (prodForm.slug || 'PROD').toUpperCase();
+    const newVariant = {
+      size: '',
+      color: '',
+      sku: `${baseSku}-VAR-${prodForm.variants.length + 1}`,
+      stock: 10
+    };
+    setProdForm({ ...prodForm, variants: [...prodForm.variants, newVariant] });
+  };
+
   // Save Product
   const saveProductSubmit = async (e) => {
     e.preventDefault();
@@ -705,6 +780,15 @@ export const StorefrontManagement = () => {
     // Format tags arrays
     const formattedSizes = prodForm.sizes.split(',').map(s => s.trim()).filter(Boolean);
     const formattedColors = prodForm.colors.split(',').map(c => c.trim()).filter(Boolean);
+    const formattedFeatures = prodForm.features ? prodForm.features.split(',').map(f => f.trim()).filter(Boolean) : [];
+
+    // Calculate total variants stock and override in_stock
+    const hasVariants = Array.isArray(prodForm.variants) && prodForm.variants.length > 0;
+    const totalVariantsStock = hasVariants 
+      ? prodForm.variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0)
+      : 0;
+    
+    const isProductInStock = hasVariants ? (totalVariantsStock > 0) : prodForm.in_stock;
 
     const payload = {
       name: prodForm.name,
@@ -716,9 +800,12 @@ export const StorefrontManagement = () => {
       image: prodForm.image,
       images: prodForm.images,
       size_guide: prodForm.size_guide,
+      features: formattedFeatures,
+      material: prodForm.material || null,
+      variants: prodForm.variants || [],
       description: prodForm.description,
       long_description: prodForm.long_description,
-      in_stock: prodForm.in_stock,
+      in_stock: isProductInStock,
       sizes: formattedSizes,
       colors: formattedColors,
       inventory_id: prodForm.inventory_id || null,
@@ -738,6 +825,15 @@ export const StorefrontManagement = () => {
           .insert([payload]);
         if (error) throw error;
       }
+
+      // Sync with inventory table if connected
+      if (prodForm.inventory_id && hasVariants) {
+        await supabase
+          .from('inventory')
+          .update({ current_stock: totalVariantsStock })
+          .eq('id', prodForm.inventory_id);
+      }
+
       setIsProductModalOpen(false);
       fetchStorefrontData();
     } catch (err) {
@@ -1431,6 +1527,125 @@ export const StorefrontManagement = () => {
                   value={prodForm.colors}
                   onChange={(e) => setProdForm({ ...prodForm, colors: e.target.value })}
                 />
+              </div>
+
+              <div className="sf-form-group">
+                <label className="sf-label">Product Features (comma separated)</label>
+                <input 
+                  type="text" 
+                  className="sf-input" 
+                  placeholder="e.g. 100% Premium Cotton, Oversized Fit"
+                  value={prodForm.features || ''}
+                  onChange={(e) => setProdForm({ ...prodForm, features: e.target.value })}
+                />
+              </div>
+
+              <div className="sf-form-group">
+                <label className="sf-label">Material / Fabric</label>
+                <input 
+                  type="text" 
+                  className="sf-input" 
+                  placeholder="e.g. Cotton 100%, Heavyweight Fleece"
+                  value={prodForm.material || ''}
+                  onChange={(e) => setProdForm({ ...prodForm, material: e.target.value })}
+                />
+              </div>
+
+              {/* Product Variations (Color, Size, SKU, Stock) */}
+              <div className="sf-form-group full-width border border-base-300/30 rounded-xl p-4 bg-base-900/40 mt-2">
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                  <div>
+                    <h4 className="font-bold text-sm text-surface-primary">Product Variations</h4>
+                    <p className="text-xs text-surface-muted">Manage size & color combinations, SKUs, and individual stocks.</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      type="button" 
+                      onClick={generateVariantCombinations}
+                      className="px-3 py-1.5 text-xs font-semibold bg-brand/10 text-brand border border-brand/20 rounded-lg hover:bg-brand/20 transition-all cursor-pointer"
+                    >
+                      Auto-Generate Combinations
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={addVariantRow}
+                      className="px-3 py-1.5 text-xs font-semibold bg-base-800 text-surface-primary border border-base-300/40 rounded-lg hover:bg-base-750 transition-all cursor-pointer"
+                    >
+                      + Add Row
+                    </button>
+                  </div>
+                </div>
+
+                {(!prodForm.variants || prodForm.variants.length === 0) ? (
+                  <div className="text-center py-6 border border-dashed border-base-300/20 rounded-lg">
+                    <p className="text-xs text-surface-muted">No variations added yet. Click Auto-Generate or Add Row to start.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-base-300/20 text-surface-muted uppercase font-mono tracking-wider">
+                          <th className="pb-2 pr-2 font-medium">Size</th>
+                          <th className="pb-2 px-2 font-medium">Color</th>
+                          <th className="pb-2 px-2 font-medium">SKU</th>
+                          <th className="pb-2 px-2 font-medium">Stock</th>
+                          <th className="pb-2 pl-2 font-medium text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {prodForm.variants.map((v, idx) => (
+                          <tr key={idx} className="border-b border-base-300/10 last:border-0">
+                            <td className="py-2 pr-2">
+                              <input 
+                                type="text"
+                                className="w-full bg-base-800 border border-base-300/30 rounded px-2 py-1 text-surface-primary"
+                                placeholder="e.g. S"
+                                value={v.size || ''}
+                                onChange={(e) => handleVariantChange(idx, 'size', e.target.value)}
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input 
+                                type="text"
+                                className="w-full bg-base-800 border border-base-300/30 rounded px-2 py-1 text-surface-primary"
+                                placeholder="e.g. Black"
+                                value={v.color || ''}
+                                onChange={(e) => handleVariantChange(idx, 'color', e.target.value)}
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input 
+                                type="text"
+                                className="w-full bg-base-800 border border-base-300/30 rounded px-2 py-1 text-surface-primary font-mono"
+                                placeholder="SKU"
+                                value={v.sku || ''}
+                                onChange={(e) => handleVariantChange(idx, 'sku', e.target.value)}
+                              />
+                            </td>
+                            <td className="py-2 px-2 w-24">
+                              <input 
+                                type="number"
+                                className="w-full bg-base-800 border border-base-300/30 rounded px-2 py-1 text-surface-primary"
+                                placeholder="0"
+                                value={v.stock}
+                                onChange={(e) => handleVariantChange(idx, 'stock', Number(e.target.value) || 0)}
+                              />
+                            </td>
+                            <td className="py-2 pl-2 text-right">
+                              <button 
+                                type="button"
+                                onClick={() => removeVariantRow(idx)}
+                                className="text-red-500 hover:text-red-400 font-semibold cursor-pointer"
+                              >
+                                Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
 
               <div className="sf-form-group full-width">

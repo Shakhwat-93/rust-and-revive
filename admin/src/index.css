@@ -1,4 +1,4 @@
-﻿@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 /* =========================================================
    DESIGN TOKENS — Dark Premium Glassmorphism + Neon Lime
@@ -107,6 +107,44 @@
     --fs-body: 0.9rem;
     --fs-small: 0.85rem;
   }
+}
+
+/* =========================================================
+   DARK THEME OVERRIDES (Luxury Dark Theme + Neon Lime)
+   ========================================================= */
+[data-theme='dark'] {
+  /* ── Dark Premium Background System ── */
+  --bg-main: #0a0a0a;
+  --bg-gradient: radial-gradient(ellipse at 20% 0%, rgba(177, 252, 61, 0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(177, 252, 61, 0.03) 0%, transparent 50%);
+  --bg-surface: #141414;
+  --bg-elevated: #1a1a1a;
+
+  /* ── Dark Glass Card System ── */
+  --glass-bg: rgba(20, 20, 20, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.04);
+  --glass-reflection: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 50%, rgba(255, 255, 255, 0.02) 100%);
+
+  /* ── Neon Lime Accent (Dark Mode Optimized) ── */
+  --accent: #b1fc3d;
+  --accent-rgb: 177, 252, 61;
+  --accent-hover: #9fe330;
+  --accent-dark: #7cb721;
+  --accent-glow: 0 0 20px rgba(177, 252, 61, 0.25), 0 0 60px rgba(177, 252, 61, 0.08);
+  --accent-glow-sm: 0 0 12px rgba(177, 252, 61, 0.15);
+  --accent-gradient: linear-gradient(135deg, #b1fc3d, #9fe330);
+  --accent-gradient-soft: linear-gradient(135deg, rgba(177, 252, 61, 0.15) 0%, rgba(177, 252, 61, 0.05) 100%);
+  --accent-stroke: rgba(177, 252, 61, 0.25);
+
+  /* ── Premium Light Text for Dark Mode ── */
+  --text-primary: #ffffff;
+  --text-secondary: #a3a3a3;
+  --text-tertiary: #737373;
+
+  /* ── Dark Mode Shadows (Deeper, pitch shadows) ── */
+  --shadow-card: 0 10px 40px rgba(0, 0, 0, 0.6), 0 2px 10px rgba(0, 0, 0, 0.4);
+  --shadow-premium: 0 20px 50px -12px rgba(0, 0, 0, 0.8), 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+  --shadow-inner: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 /* =========================================================

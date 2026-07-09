@@ -90,7 +90,7 @@ export default function TrackOrder() {
           <p className="section-label mb-2">Order Tracking</p>
           <h1 className="font-black text-3xl sm:text-4xl text-surface-primary">Track Your Package</h1>
           <p className="text-surface-secondary text-sm sm:text-base mt-2 max-w-md mx-auto">
-            Enter your Order ID (from your confirmation message) and Phone Number to check real-time status.
+            Enter your Order ID (from your confirmation message) or Phone Number to check real-time status.
           </p>
         </div>
 

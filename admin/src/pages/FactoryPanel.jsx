@@ -486,8 +486,120 @@ const buildConfirmedExportRow = (order) => {
 };
 
 export const FactoryPanel = () => {
-  const { orders, toyBoxes, autoDistributeOrders, updateOrderStatus } = useOrders();
+  const { orders, toyBoxes, autoDistributeOrders, updateOrderStatus, dispatchToCourier, dispatchToPathao } = useOrders();
   const { updatePresenceContext, profile, user } = useAuth();
+
+  const [courierPending, setCourierPending] = useState({});
+
+  const handleSteadfastDispatch = async (e, order) => {
+    if (e) e.stopPropagation();
+    const orderId = order.id;
+    if (courierPending[orderId]) return;
+
+    // Verify stock
+    const stock = getStockStatus(order);
+    if (!stock.matched) {
+      if (!confirm('Warning: This order does not have full stock in inventory. Do you still want to dispatch to Steadfast?')) {
+        return;
+      }
+    }
+
+    setCourierPending(prev => ({ ...prev, [orderId]: 'steadfast' }));
+    try {
+      await dispatchToCourier(orderId);
+      alert('Order successfully submitted to Steadfast!');
+    } catch (err) {
+      alert('Steadfast Dispatch Failed: ' + err.message);
+    } finally {
+      setCourierPending(prev => {
+        const next = { ...prev };
+        delete next[orderId];
+        return next;
+      });
+    }
+  };
+
+  const handlePathaoDispatch = async (e, order) => {
+    if (e) e.stopPropagation();
+    const orderId = order.id;
+    if (courierPending[orderId]) return;
+
+    // Verify stock
+    const stock = getStockStatus(order);
+    if (!stock.matched) {
+      if (!confirm('Warning: This order does not have full stock in inventory. Do you still want to dispatch to Pathao?')) {
+        return;
+      }
+    }
+
+    setCourierPending(prev => ({ ...prev, [orderId]: 'pathao' }));
+    try {
+      await dispatchToPathao(orderId);
+      alert('Order successfully submitted to Pathao!');
+    } catch (err) {
+      alert('Pathao Dispatch Failed: ' + err.message);
+    } finally {
+      setCourierPending(prev => {
+        const next = { ...prev };
+        delete next[orderId];
+        return next;
+      });
+    }
+  };
+
+  const handleBulkSteadfastDispatch = async () => {
+    const ids = [...selectedConfirmedIds];
+    if (ids.length === 0) return;
+    
+    if (!confirm(`Are you sure you want to send all ${ids.length} selected orders to Steadfast?`)) {
+      return;
+    }
+
+    setIsMovingSelectedConfirmed(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const orderId of ids) {
+      try {
+        await dispatchToCourier(orderId);
+        successCount++;
+      } catch (err) {
+        console.error(`Failed to bulk dispatch order #${orderId} to Steadfast:`, err);
+        failCount++;
+      }
+    }
+
+    setIsMovingSelectedConfirmed(false);
+    setSelectedConfirmedIds([]);
+    alert(`Bulk Dispatch Completed!\nSuccessfully sent to Steadfast: ${successCount}\nFailed: ${failCount}`);
+  };
+
+  const handleBulkPathaoDispatch = async () => {
+    const ids = [...selectedConfirmedIds];
+    if (ids.length === 0) return;
+    
+    if (!confirm(`Are you sure you want to send all ${ids.length} selected orders to Pathao?`)) {
+      return;
+    }
+
+    setIsMovingSelectedConfirmed(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const orderId of ids) {
+      try {
+        await dispatchToPathao(orderId);
+        successCount++;
+      } catch (err) {
+        console.error(`Failed to bulk dispatch order #${orderId} to Pathao:`, err);
+        failCount++;
+      }
+    }
+
+    setIsMovingSelectedConfirmed(false);
+    setSelectedConfirmedIds([]);
+    alert(`Bulk Dispatch Completed!\nSuccessfully sent to Pathao: ${successCount}\nFailed: ${failCount}`);
+  };
 
   useEffect(() => {
     updatePresenceContext('Reviewing Confirmed Orders');
@@ -1135,14 +1247,26 @@ export const FactoryPanel = () => {
               >
                 Clear
               </button>
-              <Button
-                variant="primary"
-                onClick={handleMoveSelectedToBulkExported}
-                disabled={isMovingSelectedConfirmed || selectedConfirmedOrders.length === 0}
-              >
-                {isMovingSelectedConfirmed ? <Loader2 size={16} className="spin" /> : <Truck size={16} />}
-                <span>{isMovingSelectedConfirmed ? 'Moving...' : 'Move to Bulk Exported'}</span>
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="primary"
+                  onClick={handleBulkSteadfastDispatch}
+                  disabled={isMovingSelectedConfirmed || selectedConfirmedOrders.length === 0}
+                  className="bg-brand text-white border border-brand hover:bg-brand-550 cursor-pointer"
+                >
+                  {isMovingSelectedConfirmed ? <Loader2 size={16} className="spin" /> : <Truck size={16} />}
+                  <span>Bulk Steadfast</span>
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={handleBulkPathaoDispatch}
+                  disabled={isMovingSelectedConfirmed || selectedConfirmedOrders.length === 0}
+                  className="bg-surface-secondary text-surface-primary border border-base-300/40 hover:bg-base-800 cursor-pointer"
+                >
+                  {isMovingSelectedConfirmed ? <Loader2 size={16} className="spin" /> : <Truck size={16} />}
+                  <span>Bulk Pathao</span>
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -1256,6 +1380,28 @@ export const FactoryPanel = () => {
                             <button className="factory-action-btn retry" onClick={(e) => { e.stopPropagation(); handleRetryDistribute(order.id); }} title="Recheck Inventory">
                                <Zap size={14} /> <span>Recheck</span>
                              </button>
+                          )}
+                          {order.status === 'Confirmed' && (
+                            <>
+                              <button 
+                                className="factory-action-btn retry bg-brand/10 text-brand border border-brand/20 hover:bg-brand/20 cursor-pointer"
+                                onClick={(e) => handleSteadfastDispatch(e, order)}
+                                disabled={Boolean(courierPending[order.id])}
+                                title="Send to Steadfast"
+                              >
+                                {courierPending[order.id] === 'steadfast' ? <Loader2 size={12} className="spin" /> : <Truck size={12} />}
+                                <span>{courierPending[order.id] === 'steadfast' ? '...' : 'S-Fast'}</span>
+                              </button>
+                              <button 
+                                className="factory-action-btn retry bg-orange-500/10 text-orange-500 border border-orange-500/20 hover:bg-orange-500/20 cursor-pointer"
+                                onClick={(e) => handlePathaoDispatch(e, order)}
+                                disabled={Boolean(courierPending[order.id])}
+                                title="Send to Pathao"
+                              >
+                                {courierPending[order.id] === 'pathao' ? <Loader2 size={12} className="spin" /> : <Truck size={12} />}
+                                <span>{courierPending[order.id] === 'pathao' ? '...' : 'Pathao'}</span>
+                              </button>
+                            </>
                           )}
                           {!stock.matched && (
                             <span className="factory-inline-note">{order.status === 'Confirmed' ? 'Blocked' : 'Insufficient'}</span>

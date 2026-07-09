@@ -236,6 +236,22 @@ export const Settings = () => {
   const [showApiKey, setShowApiKey] = useState(false);
   const [showSecretKey, setShowSecretKey] = useState(false);
 
+  // ── Pathao Courier ──
+  const [pathaoConfig, setPathaoConfig] = useState({
+    base_url: 'https://courier-api-sandbox.pathao.com',
+    client_id: '',
+    client_secret: '',
+    username: '',
+    password: '',
+    store_id: '',
+    is_enabled: false
+  });
+  const [pathaoLoading, setPathaoLoading] = useState(true);
+  const [pathaoSaving, setPathaoSaving] = useState(false);
+  const [pathaoSaved, setPathaoSaved] = useState(false);
+  const [showPathaoSecret, setShowPathaoSecret] = useState(false);
+  const [showPathaoPass, setShowPathaoPass] = useState(false);
+
   // ── Fraud Checker BD ──
   const [fraudCheckerConfig, setFraudCheckerConfig] = useState({ api_key: '', api_url: 'https://fraudchecker.link/api/check', is_enabled: false });
   const [fraudCheckerLoading, setFraudCheckerLoading] = useState(true);
@@ -255,12 +271,19 @@ export const Settings = () => {
   useEffect(() => {
     (async () => {
       setCourierLoading(true);
+      setPathaoLoading(true);
       setFraudCheckerLoading(true);
       try {
         const { data } = await supabase.from('system_configs').select('value').eq('key', 'courier_steadfast').maybeSingle();
         if (data?.value) setCourierConfig(data.value);
       } catch (e) { console.warn(e); }
       finally { setCourierLoading(false); }
+
+      try {
+        const { data } = await supabase.from('system_configs').select('value').eq('key', 'courier_pathao').maybeSingle();
+        if (data?.value) setPathaoConfig(data.value);
+      } catch (e) { console.warn(e); }
+      finally { setPathaoLoading(false); }
 
       try {
         const { data } = await supabase.from('system_configs').select('value').eq('key', 'fraud_checker_bd').maybeSingle();
@@ -307,6 +330,14 @@ export const Settings = () => {
       await supabase.from('system_configs').upsert({ key: 'courier_steadfast', value: courierConfig }, { onConflict: 'key' });
       setCourierSaved(true); setTimeout(() => setCourierSaved(false), 3000);
     } catch { setError('Courier save failed.'); } finally { setCourierSaving(false); }
+  };
+
+  const savePathao = async () => {
+    setPathaoSaving(true);
+    try {
+      await supabase.from('system_configs').upsert({ key: 'courier_pathao', value: pathaoConfig }, { onConflict: 'key' });
+      setPathaoSaved(true); setTimeout(() => setPathaoSaved(false), 3000);
+    } catch { setError('Pathao save failed.'); } finally { setPathaoSaving(false); }
   };
 
   const saveFraudChecker = async () => {
@@ -492,6 +523,93 @@ export const Settings = () => {
                   </div>
                   <div className="st-actions" style={{ justifyContent: 'flex-start', marginTop: '4px' }}>
                     <SaveBtn onClick={saveCourier} saving={courierSaving} saved={courierSaved} />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Pathao Courier Settings */}
+            <div style={{ borderTop: '1px solid var(--st-border)', paddingTop: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: '750', color: 'var(--st-text)', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                <Truck size={15} style={{ color: 'var(--st-accent)' }} />
+                <span>Pathao Merchant Courier API</span>
+              </h3>
+              {pathaoLoading ? (
+                <div className="st-loading-row"><Loader2 size={20} className="spin" /><span>Loading Pathao configuration...</span></div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div className="st-field-group">
+                    <label className="st-label">Base URL (Sandbox / Production)</label>
+                    <input 
+                      className="st-input" 
+                      type="text" 
+                      value={pathaoConfig.base_url || ''} 
+                      onChange={e => setPathaoConfig(p => ({ ...p, base_url: e.target.value }))} 
+                      placeholder="e.g. https://courier-api.pathao.com" 
+                    />
+                  </div>
+                  <div className="st-field-group">
+                    <label className="st-label">Client ID</label>
+                    <input 
+                      className="st-input" 
+                      type="text" 
+                      value={pathaoConfig.client_id || ''} 
+                      onChange={e => setPathaoConfig(p => ({ ...p, client_id: e.target.value }))} 
+                      placeholder="Enter Pathao Client ID" 
+                    />
+                  </div>
+                  <div className="st-field-group">
+                    <label className="st-label">Client Secret</label>
+                    <div className="st-input-eye">
+                      <input 
+                        className="st-input" 
+                        type={showPathaoSecret ? 'text' : 'password'} 
+                        value={pathaoConfig.client_secret || ''} 
+                        onChange={e => setPathaoConfig(p => ({ ...p, client_secret: e.target.value }))} 
+                        placeholder="Enter Pathao Client Secret" 
+                      />
+                      <button className="st-eye-btn" onClick={() => setShowPathaoSecret(v => !v)} type="button">{showPathaoSecret ? <EyeOff size={15} /> : <Eye size={15} />}</button>
+                    </div>
+                  </div>
+                  <div className="st-field-group">
+                    <label className="st-label">Username (Merchant Email)</label>
+                    <input 
+                      className="st-input" 
+                      type="text" 
+                      value={pathaoConfig.username || ''} 
+                      onChange={e => setPathaoConfig(p => ({ ...p, username: e.target.value }))} 
+                      placeholder="Enter Pathao login email" 
+                    />
+                  </div>
+                  <div className="st-field-group">
+                    <label className="st-label">Password</label>
+                    <div className="st-input-eye">
+                      <input 
+                        className="st-input" 
+                        type={showPathaoPass ? 'text' : 'password'} 
+                        value={pathaoConfig.password || ''} 
+                        onChange={e => setPathaoConfig(p => ({ ...p, password: e.target.value }))} 
+                        placeholder="Enter Pathao login password" 
+                      />
+                      <button className="st-eye-btn" onClick={() => setShowPathaoPass(v => !v)} type="button">{showPathaoPass ? <EyeOff size={15} /> : <Eye size={15} />}</button>
+                    </div>
+                  </div>
+                  <div className="st-field-group">
+                    <label className="st-label">Merchant Store ID (Pickup Location ID)</label>
+                    <input 
+                      className="st-input" 
+                      type="text" 
+                      value={pathaoConfig.store_id || ''} 
+                      onChange={e => setPathaoConfig(p => ({ ...p, store_id: e.target.value }))} 
+                      placeholder="Enter Pathao Store ID" 
+                    />
+                  </div>
+                  <div className="st-toggle-row">
+                    <div><span className="st-toggle-label">Enable Pathao Integration</span><span className="st-toggle-desc">Allow sending orders to Pathao.</span></div>
+                    <Toggle checked={pathaoConfig.is_enabled} onChange={v => setPathaoConfig(p => ({ ...p, is_enabled: v }))} />
+                  </div>
+                  <div className="st-actions" style={{ justifyContent: 'flex-start', marginTop: '4px' }}>
+                    <SaveBtn onClick={savePathao} saving={pathaoSaving} saved={pathaoSaved} />
                   </div>
                 </div>
               )}

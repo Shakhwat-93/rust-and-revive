@@ -75,12 +75,27 @@ export default function ProductDetail() {
   const reviewsCount = product.reviews_count || product.reviews || 0;
   const rating = product.rating || 5.0;
   const longDesc = product.long_description || product.longDescription || product.description;
-  const featuresList = Array.isArray(product.features) ? product.features : ['100% Premium Material', 'Custom Oversized Fit', 'Garment Washed'];
+  const featuresList = Array.isArray(product.features) && product.features.length > 0 
+    ? product.features.filter(Boolean) 
+    : ['100% Premium Material', 'Custom Oversized Fit', 'Garment Washed'];
 
-  // Enforce inventory stock control
-  const inStock = product.inventory_id
-    ? (product.inventory?.current_stock > 0)
-    : (product.in_stock !== false);
+  // Enforce variant-level inventory stock control
+  const hasVariants = Array.isArray(product.variants) && product.variants.length > 0;
+  const selectedVariant = hasVariants && selectedSize
+    ? product.variants.find(v => {
+        const sizeMatch = String(v.size).trim().toLowerCase() === String(selectedSize).trim().toLowerCase();
+        const colorMatch = !selectedColor || String(v.color).trim().toLowerCase() === String(selectedColor).trim().toLowerCase();
+        return sizeMatch && colorMatch;
+      })
+    : null;
+
+  const isVariantOutOfStock = hasVariants && selectedSize && (!selectedVariant || Number(selectedVariant.stock) <= 0);
+  
+  const inStock = isVariantOutOfStock ? false : (
+    product.inventory_id
+      ? (product.inventory?.current_stock > 0)
+      : (product.in_stock !== false)
+  );
 
   const productReviews = reviews.filter((r) => r.productId === product.id || r.productId === product.slug);
   const discount = originalPrice
@@ -122,7 +137,7 @@ export default function ProductDetail() {
   // ─── Extract Size Guide Multi-Column Data ───
   const sizeGuide = product.size_guide;
   const isAdvanced = sizeGuide?.columns && sizeGuide?.rows;
-  const materialText = sizeGuide?.material || "Cotton 100%";
+  const materialText = product.material || sizeGuide?.material || "Cotton 100%";
   const cols = isAdvanced ? sizeGuide.columns : ["Size", "Dimensions"];
   const rows = isAdvanced
     ? sizeGuide.rows
@@ -262,7 +277,7 @@ export default function ProductDetail() {
                 {inStock ? (
                   <span className="badge-success">In Stock</span>
                 ) : (
-                  <span className="badge-danger font-bold">Sold Out</span>
+                  <span className="badge-danger font-bold">{isVariantOutOfStock ? 'Size Sold Out' : 'Sold Out'}</span>
                 )}
               </motion.div>
             </div>

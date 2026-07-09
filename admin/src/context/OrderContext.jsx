@@ -439,6 +439,33 @@ export const OrderProvider = ({ children }) => {
     }
   };
 
+  const dispatchToPathao = async (orderId) => {
+    try {
+      const result = await api.dispatchToPathao(orderId);
+      const consignmentId = result?.data?.consignment_id || null;
+      const courierStatus = result?.data?.order_status || 'Pending';
+
+      setOrders((prev) => prev.map((order) => (
+        order.id === orderId
+          ? {
+              ...order,
+              dispatched_at: new Date().toISOString(),
+              courier_name: 'Pathao',
+              tracking_id: consignmentId || order.tracking_id || null,
+              courier_assigned_id: consignmentId ? String(consignmentId) : order.courier_assigned_id || null,
+              courier_status: courierStatus,
+              status: 'Courier Submitted'
+            }
+          : order
+      )));
+
+      return result;
+    } catch (error) {
+      console.error('Pathao dispatch failed:', error);
+      throw error;
+    }
+  };
+
   const deleteOrder = async (orderId) => {
     if (!isAdmin) {
       console.error('Unauthorized delete attempt');
@@ -810,6 +837,7 @@ export const OrderProvider = ({ children }) => {
       automationFlags,
       velocityMetrics,
       dispatchToCourier,
+      dispatchToPathao,
     }}>
       {children}
     </OrderContext.Provider>

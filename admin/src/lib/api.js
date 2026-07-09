@@ -1446,6 +1446,11 @@ export const api = {
 
     if (error) throw error;
 
+    // Adjust product variant and inventory stocks dynamically
+    if (oldData) {
+      await this.adjustOrderStock(orderId, oldData.status, newStatus, userName);
+    }
+
     // Log status change
     await this.logActivity({
       order_id: orderId,
@@ -1487,6 +1492,95 @@ export const api = {
     }
 
     return resultData;
+  },
+
+  async adjustOrderStock(orderId, oldStatus, newStatus, userName) {
+    const isOldCancelled = ['Cancelled', 'Fake Order'].includes(oldStatus);
+    const isNewCancelled = ['Cancelled', 'Fake Order'].includes(newStatus);
+
+    if (isOldCancelled === isNewCancelled) {
+      // No transition between cancelled and active statuses
+      return;
+    }
+
+    // multiplier: 1 means ADD stock back (moving to cancelled). -1 means DEDUCT stock again (reactivating a cancelled order).
+    const multiplier = isNewCancelled ? 1 : -1;
+
+    try {
+      const { data: order } = await supabase
+        .from('orders')
+        .select('ordered_items')
+        .eq('id', orderId)
+        .single();
+
+      if (!order || !Array.isArray(order.ordered_items)) return;
+
+      for (const item of order.ordered_items) {
+        const { data: product } = await supabase
+          .from('products')
+          .select('id, variants, inventory_id, in_stock')
+          .eq('slug', item.slug)
+          .single();
+
+        if (product) {
+          let updatedVariants = Array.isArray(product.variants) ? [...product.variants] : [];
+          let variantFound = false;
+
+          if (updatedVariants.length > 0) {
+            updatedVariants = updatedVariants.map(v => {
+              const sizeMatch = !v.size || String(v.size).trim().toLowerCase() === String(item.selectedSize || item.size || '').trim().toLowerCase();
+              const colorMatch = !v.color || String(v.color).trim().toLowerCase() === String(item.selectedColor || item.color || '').trim().toLowerCase();
+              if (sizeMatch && colorMatch) {
+                variantFound = true;
+                const change = item.quantity * multiplier;
+                const newQty = Math.max(0, (Number(v.stock) || 0) + change);
+                return { ...v, stock: newQty };
+              }
+              return v;
+            });
+          }
+
+          const totalStock = updatedVariants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
+          const inStock = updatedVariants.length > 0 ? (totalStock > 0) : product.in_stock;
+
+          // Save back to product
+          await supabase
+            .from('products')
+            .update({ 
+              variants: updatedVariants,
+              in_stock: inStock
+            })
+            .eq('id', product.id);
+
+          // Update linked inventory table if connected
+          if (product.inventory_id) {
+            if (updatedVariants.length > 0) {
+              await supabase
+                .from('inventory')
+                .update({ current_stock: totalStock })
+                .eq('id', product.inventory_id);
+            } else {
+              // Direct increment/decrement if no variants
+              const { data: invItem } = await supabase
+                .from('inventory')
+                .select('current_stock')
+                .eq('id', product.inventory_id)
+                .single();
+              if (invItem) {
+                const change = item.quantity * multiplier;
+                const newStock = Math.max(0, (invItem.current_stock || 0) + change);
+                await supabase
+                  .from('inventory')
+                  .update({ current_stock: newStock })
+                  .eq('id', product.inventory_id);
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to adjust stock for order status change:', orderId, e);
+    }
   },
 
   formatOrderNoteEntry(noteText, actionLabel, userName, timestamp = new Date().toISOString()) {
@@ -2815,6 +2909,107 @@ export const api = {
     }
 
     return data;
+  },
+
+  /**
+   * Dispatch an order to Pathao Courier
+   */
+  async dispatchToPathao(orderId) {
+    const { data: configData } = await supabase
+      .from('system_configs')
+      .select('value')
+      .eq('key', 'courier_pathao')
+      .maybeSingle();
+
+    const config = configData?.value;
+    if (!config || !config.is_enabled || !config.client_id || !config.client_secret || !config.username || !config.password) {
+      throw new Error('Pathao Courier integration is disabled or credentials are not configured in Settings.');
+    }
+
+    const { data: order, error: orderErr } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+
+    if (orderErr || !order) throw new Error('Order not found: ' + (orderErr?.message || ''));
+
+    // Authenticate with Pathao to get the Access Token
+    const authRes = await fetch('/api/pathao/aladdin/api/v1/issue-token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_id: config.client_id,
+        client_secret: config.client_secret,
+        grant_type: 'password',
+        username: config.username,
+        password: config.password
+      })
+    });
+
+    if (!authRes.ok) {
+      const authErr = await authRes.json().catch(() => ({}));
+      throw new Error('Pathao Authentication failed: ' + (authErr.message || authRes.statusText));
+    }
+
+    const authData = await authRes.json();
+    const token = authData.access_token;
+    if (!token) throw new Error('Failed to retrieve access token from Pathao.');
+
+    const items = Array.isArray(order.ordered_items) ? order.ordered_items : [];
+    const itemQty = items.reduce((sum, i) => sum + (Number(i.quantity) || 1), 0);
+    const itemDesc = items.map(i => `${i.name} (${i.selectedSize || 'Free Size'})`).join(', ');
+
+    const payload = {
+      store_id: Number(config.store_id) || null,
+      merchant_order_id: String(order.id),
+      recipient_name: order.customer_name || 'Customer',
+      recipient_phone: order.phone,
+      recipient_address: order.shipping_address || 'Address not provided',
+      delivery_type: 48,
+      item_type: 2,
+      special_instruction: order.notes || '',
+      item_quantity: itemQty || 1,
+      item_weight: 0.5,
+      item_description: itemDesc || 'Clothing Items',
+      amount_to_collect: Number(order.total_amount) || 0
+    };
+
+    const submitRes = await fetch('/api/pathao/aladdin/api/v1/orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!submitRes.ok) {
+      const submitErr = await submitRes.json().catch(() => ({}));
+      throw new Error('Pathao Order submission failed: ' + (submitErr.message || submitRes.statusText));
+    }
+
+    const submitData = await submitRes.json();
+    const consignmentId = submitData?.data?.consignment_id;
+    const courierStatus = submitData?.data?.order_status || 'Pending';
+
+    const { error: updateError } = await supabase
+      .from('orders')
+      .update({
+        dispatched_at: new Date().toISOString(),
+        courier_name: 'Pathao',
+        tracking_id: consignmentId || null,
+        courier_assigned_id: consignmentId || null,
+        courier_status: courierStatus,
+        status: 'Courier Submitted'
+      })
+      .eq('id', order.id);
+
+    if (updateError) {
+      console.error('Failed to update order with Pathao details:', updateError);
+    }
+
+    return submitData;
   },
 
   /**
