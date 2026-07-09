@@ -499,11 +499,20 @@ export default function Home() {
     load();
   }, []);
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-base-800">
+        <Loader2 size={40} className="text-brand animate-spin" />
+        <p className="text-surface-secondary text-xs font-mono tracking-widest uppercase animate-pulse">Loading Storefront...</p>
+      </div>
+    );
+  }
+
   return (
     <main>
       <Hero settings={settings} />
       <Collections settings={settings} />
-      {!loading && products.length > 0 && (
+      {products.length > 0 && (
         <>
           <LatestDrop products={products} settings={settings} />
           <ProductGrid products={products} settings={settings} />
