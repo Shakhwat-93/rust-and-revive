@@ -2961,21 +2961,21 @@ export const api = {
 
     const items = Array.isArray(order.ordered_items) ? order.ordered_items : [];
     const itemQty = items.reduce((sum, i) => sum + (Number(i.quantity) || 1), 0);
-    const itemDesc = items.map(i => `${i.name} (${i.selectedSize || 'Free Size'})`).join(', ');
+    const itemDesc = items.map(i => `${i.name} (${i.size || 'Free Size'}${i.color && i.color !== 'None' ? `, Color: ${i.color}` : ''})`).join(', ');
 
     const payload = {
       store_id: Number(config.store_id) || null,
       merchant_order_id: String(order.id),
       recipient_name: order.customer_name || 'Customer',
       recipient_phone: order.phone,
-      recipient_address: order.shipping_address || 'Address not provided',
+      recipient_address: order.address || 'Address not provided',
       delivery_type: 48,
       item_type: 2,
       special_instruction: order.notes || '',
       item_quantity: itemQty || 1,
       item_weight: 0.5,
       item_description: itemDesc || 'Clothing Items',
-      amount_to_collect: Number(order.total_amount) || 0
+      amount_to_collect: Number(order.amount) || 0
     };
 
     const submitRes = await fetch('/api/pathao/aladdin/api/v1/orders', {
