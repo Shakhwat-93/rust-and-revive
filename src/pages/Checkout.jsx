@@ -547,9 +547,8 @@ export default function Checkout() {
                   />
                 </Field>
 
-                <Field label="Email Address" icon={Mail} required hint="For order updates and confirmations">
+                <Field label="Email Address" icon={Mail} hint="Optional — For order updates and confirmations">
                   <input
-                    required
                     type="email"
                     placeholder="e.g. arif@email.com"
                     value={form.email}
