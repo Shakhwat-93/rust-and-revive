@@ -538,6 +538,7 @@ function writeCache(data) {
 export default function Home() {
   // Seed state from cache synchronously so first paint uses real data
   const cached = readCache();
+  const [loading, setLoading] = useState(!cached);
   const [products, setProducts] = useState(cached?.products || []);
   const [categories, setCategories] = useState(cached?.categories || []);
   const [topSellingProduct, setTopSellingProduct] = useState(cached?.topSellingProduct || null);
@@ -592,10 +593,21 @@ export default function Home() {
         });
       } catch (err) {
         console.error('Error fetching home data:', err);
+      } finally {
+        setLoading(false);
       }
     }
     load();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-base-950 flex flex-col items-center justify-center gap-4">
+        <div className="w-10 h-10 border-4 border-brand border-t-transparent rounded-full animate-spin" />
+        <p className="text-surface-muted text-xs font-mono tracking-widest uppercase animate-pulse">Loading Rust Revive...</p>
+      </div>
+    );
+  }
 
   return (
     <main>
