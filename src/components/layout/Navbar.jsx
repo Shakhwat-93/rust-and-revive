@@ -337,10 +337,6 @@ export default function Navbar() {
                     </motion.div>
                   );
                 })}
-                <div className="divider my-2" />
-                <Link to="/admin" className="px-4 py-3 text-surface-muted text-small">
-                  Admin Panel →
-                </Link>
               </nav>
             </motion.div>
           )}
