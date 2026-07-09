@@ -9,7 +9,8 @@ export default function TrackOrder() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [order, setOrder] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
 
   const handleTrack = async (e) => {
     e.preventDefault();
@@ -20,7 +21,8 @@ export default function TrackOrder() {
 
     setLoading(true);
     setError('');
-    setOrder(null);
+    setOrders([]);
+    setExpandedOrderId(null);
 
     try {
       let query = supabase.from('orders').select('*');
@@ -33,18 +35,17 @@ export default function TrackOrder() {
         query = query.eq('phone', phone.trim());
       }
 
-      // Fetch the latest matching order (ordered by created_at desc)
       const { data, error: dbError } = await query
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order('created_at', { ascending: false });
 
       if (dbError) throw dbError;
 
-      if (!data) {
+      if (!data || data.length === 0) {
         setError('No order found with the provided details. Please check and try again.');
       } else {
-        setOrder(data);
+        setOrders(data);
+        // Expand the first matching order by default
+        setExpandedOrderId(data[0].id);
       }
     } catch (err) {
       console.error('Tracking error:', err);
@@ -55,7 +56,9 @@ export default function TrackOrder() {
   };
 
   // Helper to get status details and step progression
-  const getStatusProgress = (status = '') => {
+  const getStatusProgress = (targetOrder) => {
+    if (!targetOrder) return null;
+    const status = targetOrder.status || '';
     const normalized = status.toLowerCase();
 
     // Steps: 1: Placed, 2: Confirmed, 3: Shipped, 4: Delivered
@@ -66,7 +69,7 @@ export default function TrackOrder() {
       return { step: 4, label: 'Delivered', description: 'Delivered successfully! Thank you for shopping with Rust Revive.' };
     }
     if (['dispatched', 'shipped', 'bulk exported', 'courier submitted'].includes(normalized)) {
-      return { step: 3, label: 'Shipped & Out for Delivery', description: 'Your package is on its way. Tracker ID: ' + (order?.tracking_id || 'Generating...') };
+      return { step: 3, label: 'Shipped & Out for Delivery', description: 'Your package is on its way. Tracker ID: ' + (targetOrder.tracking_id || 'Generating...') };
     }
     if (['confirmed'].includes(normalized)) {
       return { step: 2, label: 'Order Confirmed', description: 'Your order has been verified and is currently being packed in our factory.' };
@@ -74,8 +77,6 @@ export default function TrackOrder() {
     // Default 'new', 'pending call', 'final call pending'
     return { step: 1, label: 'Order Placed', description: 'We have received your order. A team member will call you shortly to confirm.' };
   };
-
-  const statusInfo = order ? getStatusProgress(order.status) : null;
 
   return (
     <div className="min-h-screen relative pt-24 pb-16">
@@ -165,144 +166,203 @@ export default function TrackOrder() {
 
         {/* Real-time Order Results */}
         <AnimatePresence mode="wait">
-          {order && statusInfo && (
+          {orders.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="space-y-6"
+              className="space-y-4"
             >
-              {/* Status Header Card */}
-              <div className="glass-dark p-6 rounded-xl border border-brand/10 shadow-glass">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                    <span className="text-xs font-black uppercase tracking-wider text-brand px-2.5 py-1 rounded-full bg-brand/10 border border-brand/20">
-                      {order.status}
-                    </span>
-                    <h2 className="font-black text-xl sm:text-2xl mt-3 text-surface-primary">
-                      {statusInfo.label}
-                    </h2>
-                    <p className="text-surface-secondary text-sm mt-1">
-                      {statusInfo.description}
-                    </p>
-                  </div>
-                  <div className="text-left sm:text-right flex-shrink-0">
-                    <p className="text-surface-muted text-xs">Total Amount</p>
-                    <p className="text-xl font-black text-brand">৳ {order.amount?.toLocaleString()}</p>
-                    <p className="text-surface-muted text-[10px] mt-0.5">Order ID: {order.id}</p>
-                  </div>
-                </div>
-
-                {/* Progress bar timeline */}
-                {statusInfo.step > 0 && (
-                  <div className="mt-8 pt-4 border-t border-base-800">
-                    <div className="relative flex justify-between items-center max-w-md mx-auto">
-                      {/* Connection Lines */}
-                      <div className="absolute left-0 right-0 h-1 bg-base-800 -z-10" />
-                      <div
-                        className="absolute left-0 h-1 bg-brand -z-10 transition-all duration-500"
-                        style={{ width: `${((statusInfo.step - 1) / 3) * 100}%` }}
-                      />
-
-                      {/* Step 1: Placed */}
-                      <div className="flex flex-col items-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                          statusInfo.step >= 1 ? 'bg-brand text-white shadow-glow-sm' : 'bg-base-800 text-surface-muted'
-                        }`}>
-                          <ClipboardList size={14} />
-                        </div>
-                        <span className="text-[10px] font-bold text-surface-secondary mt-2">Placed</span>
-                      </div>
-
-                      {/* Step 2: Confirmed */}
-                      <div className="flex flex-col items-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                          statusInfo.step >= 2 ? 'bg-brand text-white shadow-glow-sm' : 'bg-base-800 text-surface-muted'
-                        }`}>
-                          <Package size={14} />
-                        </div>
-                        <span className="text-[10px] font-bold text-surface-secondary mt-2">Confirmed</span>
-                      </div>
-
-                      {/* Step 3: Shipped */}
-                      <div className="flex flex-col items-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                          statusInfo.step >= 3 ? 'bg-brand text-white shadow-glow-sm' : 'bg-base-800 text-surface-muted'
-                        }`}>
-                          <Truck size={14} />
-                        </div>
-                        <span className="text-[10px] font-bold text-surface-secondary mt-2">Shipped</span>
-                      </div>
-
-                      {/* Step 4: Delivered */}
-                      <div className="flex flex-col items-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                          statusInfo.step >= 4 ? 'bg-brand text-white shadow-glow-sm' : 'bg-base-800 text-surface-muted'
-                        }`}>
-                          <CheckCircle2 size={14} />
-                        </div>
-                        <span className="text-[10px] font-bold text-surface-secondary mt-2">Delivered</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
+              <div className="flex justify-between items-center px-1 mb-2">
+                <span className="text-xs font-bold text-surface-muted">
+                  Found {orders.length} order{orders.length > 1 ? 's' : ''} matching your search
+                </span>
               </div>
 
-              {/* Order Summary & Logistics Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Items Summary Card */}
-                <div className="glass-dark p-6 rounded-xl space-y-4">
-                  <h3 className="font-bold text-sm text-surface-secondary uppercase tracking-wider border-b border-base-800 pb-2">
-                    Ordered Items
-                  </h3>
-                  <div className="space-y-3 max-h-60 overflow-y-auto">
-                    {order.ordered_items && order.ordered_items.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-center text-sm">
-                        <div className="flex items-center gap-3">
-                          {item.image && (
-                            <img src={item.image} alt={item.name} className="w-10 h-10 object-cover rounded-lg" />
-                          )}
-                          <div>
-                            <p className="font-bold text-surface-primary line-clamp-1">{item.name}</p>
-                            <p className="text-surface-muted text-xs">Size: {item.size || 'N/A'} × {item.quantity}</p>
+              {orders.map((ord) => {
+                const isExpanded = expandedOrderId === ord.id;
+                const statusInfo = getStatusProgress(ord);
+                const orderDate = ord.created_at 
+                  ? new Date(ord.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                  : 'N/A';
+
+                return (
+                  <div 
+                    key={ord.id}
+                    className={`glass-dark rounded-xl border transition-all duration-300 overflow-hidden ${
+                      isExpanded ? 'border-brand/35 shadow-glow-sm' : 'border-base-800 hover:border-brand/20'
+                    }`}
+                  >
+                    {/* Collapsible Accordion Header */}
+                    <button
+                      type="button"
+                      onClick={() => setExpandedOrderId(isExpanded ? null : ord.id)}
+                      className="w-full text-left p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-base-950/20 transition-all cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3.5">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          isExpanded ? 'bg-brand/10 text-brand' : 'bg-base-800 text-surface-muted'
+                        }`}>
+                          <ClipboardList size={20} />
+                        </div>
+                        <div>
+                          <h3 className="font-black text-base text-surface-primary flex items-center gap-2">
+                            <span>{ord.id}</span>
+                            <span className="text-[10px] font-bold text-surface-muted">· {orderDate}</span>
+                          </h3>
+                          <p className="text-xs text-surface-secondary mt-0.5">
+                            Recipient: {ord.customer_name} ({ord.phone})
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                        <div className="text-left sm:text-right">
+                          <p className="text-[10px] text-surface-muted">Amount</p>
+                          <p className="text-sm font-black text-brand">৳ {ord.amount?.toLocaleString()}</p>
+                        </div>
+                        <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full ${
+                          ['cancelled', 'fake order', 'returned'].includes(ord.status?.toLowerCase())
+                            ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                            : ord.status?.toLowerCase() === 'delivered'
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : 'bg-brand/10 text-brand border border-brand/20'
+                        }`}>
+                          {ord.status}
+                        </span>
+                      </div>
+                    </button>
+
+                    {/* Expandable Content Container */}
+                    {isExpanded && statusInfo && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="border-t border-base-800 p-5 sm:p-6 space-y-6 bg-base-950/15"
+                      >
+                        {/* Status Description */}
+                        <div>
+                          <h4 className="font-bold text-base text-surface-primary">{statusInfo.label}</h4>
+                          <p className="text-surface-secondary text-sm mt-0.5">{statusInfo.description}</p>
+                        </div>
+
+                        {/* Progress bar timeline */}
+                        {statusInfo.step > 0 && (
+                          <div className="pt-2 pb-4">
+                            <div className="relative flex justify-between items-center max-w-md mx-auto">
+                              {/* Connection Lines */}
+                              <div className="absolute left-0 right-0 h-1 bg-base-800 -z-10" />
+                              <div
+                                className="absolute left-0 h-1 bg-brand -z-10 transition-all duration-500"
+                                style={{ width: `${((statusInfo.step - 1) / 3) * 100}%` }}
+                              />
+
+                              {/* Step 1: Placed */}
+                              <div className="flex flex-col items-center">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                                  statusInfo.step >= 1 ? 'bg-brand text-white shadow-glow-sm' : 'bg-base-800 text-surface-muted'
+                                }`}>
+                                  <ClipboardList size={14} />
+                                </div>
+                                <span className="text-[10px] font-bold text-surface-secondary mt-2">Placed</span>
+                              </div>
+
+                              {/* Step 2: Confirmed */}
+                              <div className="flex flex-col items-center">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                                  statusInfo.step >= 2 ? 'bg-brand text-white shadow-glow-sm' : 'bg-base-800 text-surface-muted'
+                                }`}>
+                                  <Package size={14} />
+                                </div>
+                                <span className="text-[10px] font-bold text-surface-secondary mt-2">Confirmed</span>
+                              </div>
+
+                              {/* Step 3: Shipped */}
+                              <div className="flex flex-col items-center">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                                  statusInfo.step >= 3 ? 'bg-brand text-white shadow-glow-sm' : 'bg-base-800 text-surface-muted'
+                                }`}>
+                                  <Truck size={14} />
+                                </div>
+                                <span className="text-[10px] font-bold text-surface-secondary mt-2">Shipped</span>
+                              </div>
+
+                              {/* Step 4: Delivered */}
+                              <div className="flex flex-col items-center">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                                  statusInfo.step >= 4 ? 'bg-brand text-white shadow-glow-sm' : 'bg-base-800 text-surface-muted'
+                                }`}>
+                                  <CheckCircle2 size={14} />
+                                </div>
+                                <span className="text-[10px] font-bold text-surface-secondary mt-2">Delivered</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Order Details Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Items Summary Card */}
+                          <div className="glass-dark-accent p-4 rounded-xl border border-base-800/50 space-y-4">
+                            <h4 className="font-bold text-xs text-surface-secondary uppercase tracking-wider border-b border-base-800 pb-2">
+                              Ordered Items
+                            </h4>
+                            <div className="space-y-3.5 max-h-60 overflow-y-auto pr-1">
+                              {ord.ordered_items && ord.ordered_items.map((item, idx) => (
+                                <div key={idx} className="flex justify-between items-center text-sm">
+                                  <div className="flex items-center gap-3">
+                                    {item.image && (
+                                      <img src={item.image} alt={item.name} className="w-10 h-10 object-cover rounded-lg border border-base-800" />
+                                    )}
+                                    <div>
+                                      <p className="font-bold text-surface-primary line-clamp-1">{item.name}</p>
+                                      <p className="text-surface-muted text-xs">
+                                        Size: {item.size || 'N/A'}{item.color && item.color !== 'None' ? ` / Color: ${item.color}` : ''} × {item.quantity}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <p className="font-bold text-surface-primary">৳ {item.line_total?.toLocaleString()}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Delivery Address & Logistics */}
+                          <div className="glass-dark-accent p-4 rounded-xl border border-base-800/50 space-y-4 text-sm">
+                            <h4 className="font-bold text-xs text-surface-secondary uppercase tracking-wider border-b border-base-800 pb-2">
+                              Delivery & Logistics
+                            </h4>
+                            <div className="space-y-4">
+                              <div className="flex gap-3 items-start">
+                                <MapPin size={16} className="text-brand flex-shrink-0 mt-0.5" />
+                                <div>
+                                  <p className="text-surface-muted text-xs">Address</p>
+                                  <p className="font-medium text-surface-primary mt-0.5">{ord.address}</p>
+                                </div>
+                              </div>
+
+                              <div className="flex gap-3 items-start">
+                                <Truck size={16} className="text-brand flex-shrink-0 mt-0.5" />
+                                <div>
+                                  <p className="text-surface-muted text-xs">Courier Service</p>
+                                  <p className="font-medium text-surface-primary mt-0.5">
+                                    {ord.courier_name ? `${ord.courier_name} (${ord.courier_status})` : 'Awaiting courier assignment'}
+                                  </p>
+                                  {ord.tracking_id && (
+                                    <p className="text-surface-secondary text-xs mt-1">Waybill: <code className="font-mono text-brand bg-brand/5 px-1.5 py-0.5 rounded border border-brand/10">{ord.tracking_id}</code></p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <p className="font-bold text-surface-primary">৳ {item.line_total?.toLocaleString()}</p>
-                      </div>
-                    ))}
+                      </motion.div>
+                    )}
                   </div>
-                </div>
-
-                {/* Logistics & Delivery Details */}
-                <div className="glass-dark p-6 rounded-xl space-y-4">
-                  <h3 className="font-bold text-sm text-surface-secondary uppercase tracking-wider border-b border-base-800 pb-2">
-                    Delivery Details
-                  </h3>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex gap-3 items-start">
-                      <MapPin size={16} className="text-brand flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-surface-muted text-xs">Delivery Address</p>
-                        <p className="font-medium text-surface-primary mt-0.5">{order.address}</p>
-                        <p className="text-surface-secondary text-xs mt-1">Recipient: {order.customer_name} ({order.phone})</p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3 items-start">
-                      <Truck size={16} className="text-brand flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-surface-muted text-xs">Courier Details</p>
-                        <p className="font-medium text-surface-primary mt-0.5">
-                          {order.courier_name ? `${order.courier_name} (${order.courier_status})` : 'Awaiting courier assignment'}
-                        </p>
-                        {order.tracking_id && (
-                          <p className="text-surface-secondary text-xs mt-0.5">Waybill: {order.tracking_id}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                );
+              })}
             </motion.div>
           )}
         </AnimatePresence>
