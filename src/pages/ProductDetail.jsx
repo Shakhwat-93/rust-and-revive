@@ -32,48 +32,7 @@ export default function ProductDetail() {
   const [sizeError, setSizeError] = useState(false);
   const { addItem, openCart } = useCartStore();
 
-  useEffect(() => {
-    async function loadProduct() {
-      setLoading(true);
-      try {
-        const prod = await getProductBySlug(slug);
-        setProduct(prod);
-        setSelectedSize(prod?.sizes?.[0] || null);
-        setSelectedColor(prod?.colors?.[0] || null);
-
-        if (prod?.category) {
-          const rel = await getProducts({ category: prod.category });
-          setRelatedProducts(rel.filter((p) => p.id !== prod.id).slice(0, 4));
-        }
-      } catch (err) {
-        console.error('Error fetching product detail:', err);
-        setProduct(null);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadProduct();
-  }, [slug]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen pt-20 flex flex-col items-center justify-center gap-4">
-        <Loader2 size={36} className="text-brand animate-spin" />
-        <p className="text-surface-muted text-small font-mono tracking-widest uppercase">Loading Product Details...</p>
-      </div>
-    );
-  }
-
-  if (!product) {
-    return (
-      <div className="min-h-screen pt-20 flex flex-col items-center justify-center gap-4">
-        <h1 className="text-h3 font-bold">Product Not Found</h1>
-        <Link to="/shop" className="btn-primary">Back to Shop</Link>
-      </div>
-    );
-  }
-
-  const images = Array.isArray(product.images) && product.images.length > 0 ? product.images : [product.image];
+  const images = product ? (Array.isArray(product.images) && product.images.length > 0 ? product.images : [product.image]) : [];
   const sliderRef = useRef(null);
   
   const handleScroll = (e) => {
@@ -117,6 +76,47 @@ export default function ProductDetail() {
 
     return () => clearInterval(interval);
   }, [activeImg, images.length]);
+
+  useEffect(() => {
+    async function loadProduct() {
+      setLoading(true);
+      try {
+        const prod = await getProductBySlug(slug);
+        setProduct(prod);
+        setSelectedSize(prod?.sizes?.[0] || null);
+        setSelectedColor(prod?.colors?.[0] || null);
+
+        if (prod?.category) {
+          const rel = await getProducts({ category: prod.category });
+          setRelatedProducts(rel.filter((p) => p.id !== prod.id).slice(0, 4));
+        }
+      } catch (err) {
+        console.error('Error fetching product detail:', err);
+        setProduct(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadProduct();
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen pt-20 flex flex-col items-center justify-center gap-4">
+        <Loader2 size={36} className="text-brand animate-spin" />
+        <p className="text-surface-muted text-small font-mono tracking-widest uppercase">Loading Product Details...</p>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen pt-20 flex flex-col items-center justify-center gap-4">
+        <h1 className="text-h3 font-bold">Product Not Found</h1>
+        <Link to="/shop" className="btn-primary">Back to Shop</Link>
+      </div>
+    );
+  }
 
   const originalPrice = product.original_price || product.originalPrice;
   const reviewsCount = product.reviews_count || product.reviews || 0;
