@@ -46,10 +46,10 @@ const defaultHome = {
   instagramUrl: "https://www.instagram.com/rust.revive?igsh=MWl3Y3N0MmM0MGRhMQ%3D%3D&utm_source=qr",
   instagramProfileImage: "/images/hoodie-rust.webp",
   instagramImages: [
-    { src: "/images/hoodie-rust.webp", likes: "1.2k", comments: "84" },
-    { src: "/images/hoodie-black.webp", likes: "956", comments: "42" },
-    { src: "/images/tee-charcoal.webp", likes: "2.4k", comments: "128" },
-    { src: "/images/cargo-black.webp", likes: "1.8k", comments: "96" },
+    { src: "", likes: "", comments: "" },
+    { src: "", likes: "", comments: "" },
+    { src: "", likes: "", comments: "" },
+    { src: "", likes: "", comments: "" }
   ]
 };
 
