@@ -6,7 +6,8 @@ import { useAuth } from '../context/AuthContext';
 import { 
   User, Phone, MapPin, Package, Calendar, Clock, 
   History, Edit2, X, Clipboard, Copy, ExternalLink, 
-  Truck, CheckCircle2, AlertCircle, Info, RotateCcw, Loader2
+  Truck, CheckCircle2, AlertCircle, Info, RotateCcw, Loader2,
+  Printer
 } from 'lucide-react';
 import CurrencyIcon from './CurrencyIcon';
 import api from '../lib/api';
@@ -385,6 +386,319 @@ export const OrderDetailsModal = ({ isOpen, onClose, order, onEdit }) => {
     copyTimeoutRef.current = window.setTimeout(() => {
       setCopiedSummary(false);
     }, 1800);
+  };
+
+  const handlePrintInvoice = () => {
+    const totalAmount = Number(effectiveOrder.amount || 0);
+    
+    const getStoredDeliveryChargeLocal = () => {
+      const parseEmbeddedDeliveryChargeLocal = (zoneText) => {
+        if (!zoneText) return null;
+        const match = String(zoneText).match(/\(\s*৳?\s*(\d+)\s*\)/);
+        return match ? Number(match[1]) : null;
+      };
+      
+      const embeddedCharge = parseEmbeddedDeliveryChargeLocal(effectiveOrder.shipping_zone);
+      if (embeddedCharge !== null) return embeddedCharge;
+
+      const directCharge = Number(effectiveOrder.delivery_charge);
+      if (Number.isFinite(directCharge) && directCharge > 0) return directCharge;
+
+      const summaryCharge = Number(effectiveOrder.pricing_summary?.delivery_charge);
+      if (Number.isFinite(summaryCharge) && summaryCharge > 0) return summaryCharge;
+
+      return 0;
+    };
+
+    const shippingCost = getStoredDeliveryChargeLocal();
+    const finalSubtotal = shippingCost > 0 ? Math.max(0, totalAmount - shippingCost) : totalAmount;
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Popup blocker blocked invoice print. Please allow popups for this site.');
+      return;
+    }
+
+    const orderDate = effectiveOrder.created_at 
+      ? new Date(effectiveOrder.created_at).toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        })
+      : new Date().toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        });
+
+    const productRows = productDetails.map((item, idx) => {
+      const itemPrice = Number(item.price || 0);
+      const itemQty = Number(item.quantity || 1);
+      const unitPrice = itemQty > 0 ? Math.round(itemPrice / itemQty) : itemPrice;
+      const sizeLabel = item.size ? `<span class="item-size">Size: ${item.size}</span>` : '';
+      
+      return `
+        <tr>
+          <td style="text-align: center; border-bottom: 1px solid #e2e8f0; padding: 2mm 3mm;">${idx + 1}</td>
+          <td style="border-bottom: 1px solid #e2e8f0; padding: 2mm 3mm;">
+            <span style="font-weight: 600; color: #0f172a;">${item.name}</span>
+            ${sizeLabel}
+          </td>
+          <td style="text-align: center; border-bottom: 1px solid #e2e8f0; padding: 2mm 3mm;">${itemQty}</td>
+          <td style="text-align: right; border-bottom: 1px solid #e2e8f0; padding: 2mm 3mm;">৳${unitPrice.toLocaleString('en-BD')}</td>
+          <td style="text-align: right; border-bottom: 1px solid #e2e8f0; padding: 2mm 3mm;">৳${itemPrice.toLocaleString('en-BD')}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Invoice - ${effectiveOrder.id}</title>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 0;
+            }
+            body {
+              font-family: 'Inter', sans-serif;
+              margin: 0;
+              padding: 0;
+              width: 210mm;
+              height: 297mm;
+              background-color: #ffffff;
+              color: #1f2937;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            .invoice-wrapper {
+              width: 210mm;
+              height: 148.5mm;
+              box-sizing: border-box;
+              padding: 10mm 12mm;
+              border-bottom: 1px dashed #94a3b8;
+              display: flex;
+              flex-direction: column;
+              justify-content: space-between;
+              background-color: #ffffff;
+            }
+            .invoice-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              margin-bottom: 4mm;
+            }
+            .brand-section {
+              text-align: left;
+            }
+            .brand-name {
+              font-size: 16pt;
+              font-weight: 800;
+              letter-spacing: -0.5px;
+              color: #0f172a;
+              margin: 0;
+              text-transform: uppercase;
+            }
+            .brand-subtitle {
+              font-size: 8pt;
+              color: #6b7280;
+              margin: 1mm 0 0 0;
+            }
+            .invoice-title-block {
+              text-align: right;
+            }
+            .invoice-title {
+              font-size: 15pt;
+              font-weight: 800;
+              color: #0f172a;
+              margin: 0;
+              text-transform: uppercase;
+            }
+            .invoice-meta {
+              font-size: 9pt;
+              margin-top: 1mm;
+              color: #4b5563;
+              line-height: 1.4;
+            }
+            .details-container {
+              display: grid;
+              grid-template-columns: 1.2fr 0.8fr;
+              gap: 6mm;
+              margin-bottom: 4mm;
+              background-color: #f8fafc;
+              padding: 3mm 4mm;
+              border-radius: 8px;
+              border: 1px solid #e2e8f0;
+            }
+            .details-block-title {
+              font-size: 8pt;
+              font-weight: 700;
+              text-transform: uppercase;
+              color: #64748b;
+              margin: 0 0 1.5mm 0;
+              letter-spacing: 0.5px;
+            }
+            .details-text {
+              font-size: 9pt;
+              line-height: 1.4;
+              margin: 0;
+              color: #334155;
+            }
+            .table-container {
+              flex-grow: 1;
+              margin-bottom: 4mm;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              font-size: 9pt;
+            }
+            th {
+              background-color: #0f172a;
+              color: #ffffff;
+              font-weight: 700;
+              text-transform: uppercase;
+              font-size: 7.5pt;
+              padding: 2mm 3mm;
+            }
+            .item-size {
+              font-size: 7.5pt;
+              background-color: #e2e8f0;
+              color: #475569;
+              padding: 0.5mm 1.5mm;
+              border-radius: 4px;
+              margin-left: 2mm;
+              font-weight: 500;
+              display: inline-block;
+            }
+            .summary-footer {
+              display: grid;
+              grid-template-columns: 1.1fr 0.9fr;
+              gap: 8mm;
+              align-items: flex-end;
+            }
+            .notes-block {
+              font-size: 8pt;
+              color: #64748b;
+              line-height: 1.4;
+            }
+            .summary-row {
+              display: flex;
+              justify-content: space-between;
+              padding: 1.5mm 0;
+              color: #475569;
+              border-bottom: 1px solid #f1f5f9;
+            }
+            .summary-row.grand-total {
+              border-bottom: none;
+              padding-top: 2.5mm;
+              font-size: 11pt;
+              font-weight: 800;
+              color: #0f172a;
+            }
+            .footer-contact {
+              margin-top: 3mm;
+              text-align: center;
+              font-size: 7.5pt;
+              color: #94a3b8;
+              border-top: 1px solid #f1f5f9;
+              padding-top: 2mm;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="invoice-wrapper">
+            <div class="invoice-header">
+              <div class="brand-section">
+                <h1 class="brand-name">RUST & REVIVE</h1>
+                <p class="brand-subtitle">Premium Streetwear | Bangladesh</p>
+              </div>
+              <div class="invoice-title-block">
+                <h2 class="invoice-title">Retail Invoice</h2>
+                <div class="invoice-meta">
+                  Invoice #: <strong>${effectiveOrder.id}</strong><br>
+                  Date: <strong>${orderDate}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="details-container">
+              <div>
+                <h3 class="details-block-title">Bill To</h3>
+                <p class="details-text">
+                  <strong>Name:</strong> ${effectiveOrder.customer_name}<br>
+                  <strong>Phone:</strong> ${effectiveOrder.phone}<br>
+                  <strong>Address:</strong> ${effectiveOrder.address || 'N/A'}
+                </p>
+              </div>
+              <div>
+                <h3 class="details-block-title">Shipping Details</h3>
+                <p class="details-text">
+                  <strong>Zone:</strong> ${shippingZoneLabel}<br>
+                  <strong>Method:</strong> Home Delivery<br>
+                  <strong>Payment:</strong> ${effectiveOrder.payment_status || 'Unpaid'}
+                </p>
+              </div>
+            </div>
+
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width: 8%; text-align: center; border-top-left-radius: 4px; border-bottom-left-radius: 4px;">SL</th>
+                    <th style="width: 52%; text-align: left;">Item Description</th>
+                    <th style="width: 10%; text-align: center;">Qty</th>
+                    <th style="width: 15%; text-align: right;">Unit Price</th>
+                    <th style="width: 15%; text-align: right; border-top-right-radius: 4px; border-bottom-right-radius: 4px;">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${productRows}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="summary-footer">
+              <div class="notes-block">
+                <h3 class="details-block-title" style="margin-bottom: 1mm;">Customer Notes</h3>
+                <p style="margin: 0;">${effectiveOrder.notes || 'Thank you for your purchase! We appreciate your support.'}</p>
+              </div>
+              <div>
+                <div class="summary-row">
+                  <span>Subtotal</span>
+                  <span>৳${finalSubtotal.toLocaleString('en-BD')}</span>
+                </div>
+                <div class="summary-row">
+                  <span>Delivery Charge</span>
+                  <span>৳${shippingCost.toLocaleString('en-BD')}</span>
+                </div>
+                <div class="summary-row grand-total">
+                  <span>Total Payable</span>
+                  <span>৳${totalAmount.toLocaleString('en-BD')}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="footer-contact">
+              This is a computer-generated invoice. No signature required. &nbsp;|&nbsp; Support: +880-9612-444888 &nbsp;|&nbsp; rustandrevive.com
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 350);
   };
 
   const saveOrderNote = async () => {
@@ -1034,6 +1348,10 @@ export const OrderDetailsModal = ({ isOpen, onClose, order, onEdit }) => {
 
         {/* Footer Actions */}
         <div className="details-footer-actions">
+           <Button variant="ghost" onClick={handlePrintInvoice} style={{ marginRight: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+             <Printer size={18} />
+             <span>Print Invoice</span>
+           </Button>
            <Button variant="secondary" onClick={onClose} icon={<X size={18} />}>Close Window</Button>
            {onEdit && (
              <Button variant="primary" onClick={() => { onClose(); onEdit(effectiveOrder); }} icon={<Edit2 size={18} />}>
