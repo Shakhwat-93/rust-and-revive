@@ -210,7 +210,7 @@ export default function ProductDetail() {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16">
 
           {/* ─── Image Gallery Slider ─── */}
-          <div className="space-y-4">
+          <div className="space-y-4 min-w-0 w-full overflow-hidden">
             {/* Main Image Slider */}
             <div className="relative w-full rounded-2xl bg-base-950/20 border border-base-300 overflow-hidden flex items-center justify-center">
               {/* Swiper Container */}
@@ -286,7 +286,7 @@ export default function ProductDetail() {
 
             {/* Thumbnails */}
             {images.length > 1 && (
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none w-full">
                 {images.map((img, i) => (
                   <button
                     key={i}
