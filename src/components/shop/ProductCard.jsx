@@ -43,12 +43,12 @@ export default function ProductCard({ product, index = 0 }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-50px' }}
       transition={{ duration: 0.5, delay: index * 0.08, ease: [0.25, 0.1, 0.25, 1] }}
-      onHoverStart={() => setHovered(true)}
+      onHoverStart={() => { if (window.innerWidth >= 1024) setHovered(true); }}
       onHoverEnd={() => setHovered(false)}
       className="group"
     >
       <Link to={`/product/${product.slug}`} className="block">
-        <div className="relative aspect-[3/4] rounded-2xl bg-base-900 overflow-hidden border border-base-400/30 group-hover:border-base-400/80 transition-all duration-300">
+        <div className="relative aspect-[3/4] rounded-2xl bg-base-900 overflow-hidden border border-base-400/30 lg:group-hover:border-base-400/80 transition-all duration-300">
           {/* Product Image */}
           <motion.img
             src={product.image}
@@ -99,7 +99,7 @@ export default function ProductCard({ product, index = 0 }) {
               e.stopPropagation();
               setLiked(!liked);
             }}
-            className="absolute top-3 right-3 w-8 h-8 rounded-full glass flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200"
+            className="absolute top-3 right-3 w-8 h-8 rounded-full glass flex items-center justify-center opacity-0 lg:group-hover:opacity-100 transition-all duration-200"
           >
             <Heart
               size={14}
@@ -143,7 +143,7 @@ export default function ProductCard({ product, index = 0 }) {
         <div className="mt-3 px-1">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-small text-surface-primary group-hover:text-brand transition-colors duration-200 line-clamp-1">
+              <p className="font-semibold text-small text-surface-primary lg:group-hover:text-brand transition-colors duration-200 line-clamp-1">
                 {product.name}
               </p>
               <p className="text-xs text-surface-muted mt-0.5 capitalize">{product.category}</p>
