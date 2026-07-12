@@ -173,19 +173,15 @@ function Hero({ settings }) {
 
 /* ─── Collections ────────────────────────────────────────────────────── */
 function Collections({ settings, categories }) {
-  const list = categories && categories.length > 0 
-    ? categories.map(cat => ({
-        id: cat.slug,
-        label: cat.name,
-        desc: cat.description,
-        image: cat.image_url || '/images/hoodie-rust.webp'
-      }))
-    : [
-        { id: 'hoodies', label: 'Hoodies', desc: 'Heavy & Oversized', image: '/images/hoodie-rust.webp' },
-        { id: 'bottoms', label: 'Bottoms', desc: 'Utility & Street', image: '/images/cargo-black.webp' },
-        { id: 'jackets', label: 'Jackets', desc: 'Layer Up', image: '/images/jacket-bomber.webp' },
-        { id: 'tees', label: 'Tees', desc: 'The Essential', image: '/images/tee-charcoal.webp' }
-      ];
+  if (!categories || categories.length === 0) return null;
+
+  const list = categories.map(cat => ({
+    id: cat.slug,
+    label: cat.name,
+    desc: cat.description,
+    image: cat.image_url || '/images/hoodie-rust.webp'
+  }));
+
 
   return (
     <section className="py-24 lg:py-32">
