@@ -173,14 +173,19 @@ function Hero({ settings }) {
 
 /* ─── Collections ────────────────────────────────────────────────────── */
 function Collections({ settings, categories }) {
-  if (!categories || categories.length === 0) return null;
-
-  const list = categories.map(cat => ({
-    id: cat.slug,
-    label: cat.name,
-    desc: cat.description,
-    image: cat.image_url || '/images/hoodie-rust.webp'
-  }));
+  const list = categories && categories.length > 0 
+    ? categories.map(cat => ({
+        id: cat.slug,
+        label: cat.name,
+        desc: cat.description,
+        image: cat.image_url || '/images/hoodie-rust.webp'
+      }))
+    : [
+        { id: 'hoodies', label: 'Hoodies', desc: 'Heavy & Oversized', image: '/images/hoodie-rust.webp' },
+        { id: 'bottoms', label: 'Bottoms', desc: 'Utility & Street', image: '/images/cargo-black.webp' },
+        { id: 'jackets', label: 'Jackets', desc: 'Layer Up', image: '/images/jacket-bomber.webp' },
+        { id: 'tees', label: 'Tees', desc: 'The Essential', image: '/images/tee-charcoal.webp' }
+      ];
 
 
   return (
@@ -416,7 +421,7 @@ function InstagramSection({ settings }) {
   const profileImg = settings.instagramProfileImage || defaultHome.instagramProfileImage;
   const feedImages = settings.instagramImages && settings.instagramImages.length === 4
     ? settings.instagramImages
-    : defaultHome.instagramImages;
+    : [];
 
   return (
     <section className="py-24 lg:py-32 overflow-hidden relative">
@@ -463,29 +468,31 @@ function InstagramSection({ settings }) {
             </div>
 
             {/* Grid of Feed */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
-              {feedImages.map((img, idx) => (
-                <a
-                  key={idx}
-                  href={instaUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="relative aspect-square rounded-2xl overflow-hidden group/item bg-base-800 block shadow-md border border-base-300/40"
-                >
-                  <img src={img.src} alt="Instagram post" className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500 ease-out" />
-                  <div className="absolute inset-0 bg-base-950/70 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4 text-white backdrop-blur-[2px]">
-                    <div className="flex items-center gap-1.5 font-bold text-xs">
-                      <Heart size={16} className="fill-white text-white" />
-                      <span>{img.likes}</span>
+            {feedImages && feedImages.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+                {feedImages.map((img, idx) => (
+                  <a
+                    key={idx}
+                    href={instaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative aspect-square rounded-2xl overflow-hidden group/item bg-base-800 block shadow-md border border-base-300/40"
+                  >
+                    <img src={img.src} alt="Instagram post" className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500 ease-out" />
+                    <div className="absolute inset-0 bg-base-950/70 opacity-0 group-hover/item:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-4 text-white backdrop-blur-[2px]">
+                      <div className="flex items-center gap-1.5 font-bold text-xs">
+                        <Heart size={16} className="fill-white text-white" />
+                        <span>{img.likes}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 font-bold text-xs">
+                        <MessageCircle size={16} className="fill-white text-white" />
+                        <span>{img.comments}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5 font-bold text-xs">
-                      <MessageCircle size={16} className="fill-white text-white" />
-                      <span>{img.comments}</span>
-                    </div>
-                  </div>
-                </a>
-              ))}
-            </div>
+                  </a>
+                ))}
+              </div>
+            )}
 
             {/* Bottom Footer CTA inside card */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-base-300/50">
